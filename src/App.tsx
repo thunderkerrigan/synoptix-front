@@ -2,8 +2,12 @@ import React, { useState, useEffect, Fragment, KeyboardEvent } from "react";
 import "./App.css";
 import { ShadowWord, ShadowWordsCloud } from "./models/Word";
 import axios from "axios";
-import { Box, TextField } from "@mui/material";
+import { Box, Stack, TextField, Typography } from "@mui/material";
 // import { TypographyProps } from "@mui/material/Typography";
+
+const GET_CURRENT_GAME_URL = process.env.REACT_APP_GET_CURRENT_GAME_URL || "";
+const GET_SCORE_FOR_WORD_URL =
+  process.env.REACT_APP_GET_SCORE_FOR_WORD_URL || "";
 
 interface ShadowWordProps extends React.ComponentProps<"span"> {
   word: ShadowWord;
@@ -53,10 +57,7 @@ const App = () => {
   const [requestedWord, setRequestedWord] = useState<string>("");
   useEffect(() => {
     const fetchData = async () => {
-      const response = await axios.get<ShadowWordsCloud>(
-        "https://synoptix.back.thunderkerrigan.fr/synoptix/une_journée_en_enfer"
-        // "http://localhost:4000/synoptix/Interstellar"
-      );
+      const response = await axios.get<ShadowWordsCloud>(GET_CURRENT_GAME_URL);
       if (response.status === 200) {
         setSynopsis(response.data);
       }
@@ -84,7 +85,20 @@ const App = () => {
       );
     });
     setSynopsisContent(
-      <Box sx={{ display: "block" }}>{newSynopsisContent}</Box>
+      <Box
+        sx={{
+          margin: "0 auto",
+          width: "90%",
+          alignContent: "center",
+          display: "block",
+          backgroundColor: "white",
+          borderRadius: "5px",
+          boxShadow: "inset 0px 0px 4px black",
+          padding: "5px",
+        }}
+      >
+        {newSynopsisContent}
+      </Box>
     );
   }, [synopsis, lastWord]);
 
@@ -92,8 +106,7 @@ const App = () => {
     console.log("start submitWord:");
 
     const { data: scoredWords } = await axios.get<ShadowWord[]>(
-      // `http://localhost:4000/synoptix/score/${requestedWord}`
-      `https://synoptix.back.thunderkerrigan.fr/synoptix/score/${requestedWord}`
+      `${GET_SCORE_FOR_WORD_URL}${requestedWord}`
     );
     const wordsIDs = scoredWords.map((w) => w.id);
     let newMatchedHints = "";
@@ -139,18 +152,29 @@ const App = () => {
     };
 
     return (
-      <Fragment>
+      <Stack
+        sx={{
+          backgroundColor: "#789bd3",
+          height: "100vh",
+        }}
+        justifyContent="center"
+        direction="column"
+        alignItems="center"
+        spacing={2}
+      >
+        <Typography variant="h1">! SYNOPTIX !</Typography>
         <Box>
           <TextField
+            label="Enter a word"
             id="score-id"
             value={requestedWord}
             onChange={handleScoreTextfieldChange}
             onKeyUp={handleKeyboardEvent}
           />
-          {hintsRow}
         </Box>
+        {hintsRow}
         {synopsisContent}
-      </Fragment>
+      </Stack>
     );
   };
   return (
