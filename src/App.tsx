@@ -54,8 +54,8 @@ const App = () => {
   useEffect(() => {
     const fetchData = async () => {
       const response = await axios.get<ShadowWordsCloud>(
-        // "https://synoptix.back.thunderkerrigan.fr/synoptix/une_journée_en_enfer"
-        "http://localhost:4000/synoptix/Interstellar"
+        "https://synoptix.back.thunderkerrigan.fr/synoptix/une_journée_en_enfer"
+        // "http://localhost:4000/synoptix/Interstellar"
       );
       if (response.status === 200) {
         setSynopsis(response.data);
@@ -92,8 +92,8 @@ const App = () => {
     console.log("start submitWord:");
 
     const { data: scoredWords } = await axios.get<ShadowWord[]>(
-      `http://localhost:4000/synoptix/score/${requestedWord}`
-      // `https://synoptix.back.thunderkerrigan.fr/synoptix/score/${requestedWord}`
+      // `http://localhost:4000/synoptix/score/${requestedWord}`
+      `https://synoptix.back.thunderkerrigan.fr/synoptix/score/${requestedWord}`
     );
     const wordsIDs = scoredWords.map((w) => w.id);
     let newMatchedHints = "";
