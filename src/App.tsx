@@ -18,7 +18,7 @@ const ShadowWordSpan = ({ word, lastWord }: ShadowWordProps) => {
     const isSimilar = word.similarity === 1
     const isLastWord =
         word.closestWord.toLocaleLowerCase() === lastWord.toLocaleLowerCase()
-    const isSimilarAndLastWord = isSimilar && isLastWord
+    // const isSimilarAndLastWord = isSimilar && isLastWord
     const style: React.CSSProperties = {
         fontFamily: 'monospace',
         borderRadius: '3px',
