@@ -1,8 +1,14 @@
-import React, { useState, useEffect, Fragment, KeyboardEvent } from "react";
+import React, {
+  useState,
+  useEffect,
+  Fragment,
+  KeyboardEvent,
+  useMemo,
+} from "react";
 import "./App.css";
-import { ShadowWord, ShadowWordsCloud } from "./models/Word";
+import { RedactedGame, ShadowWord, ShadowWordsCloud } from "./models/Word";
 import axios from "axios";
-import { Box, Stack, TextField, Typography } from "@mui/material";
+import { Box, Collapse, Stack, TextField, Typography } from "@mui/material";
 // import parse from "html-react-parser";
 
 const GET_CURRENT_GAME_URL = process.env.REACT_APP_GET_CURRENT_GAME_URL || "";
@@ -32,13 +38,13 @@ const ShadowWordSpan = ({ word, lastWord }: ShadowWordProps) => {
     color: isSimilar ? "black" : isLastWord ? "orange" : "grey",
     // width: `${word.shadowWord.length * 10}px`,
     whiteSpace: "pre",
-    padding: isSimilar ? "0" : "0 5px",
-    margin: isSimilar ? "inherit" : "0 1px",
+    padding: isSimilar ? "0" : "0 3px",
+    // margin: isSimilar ? "inherit" : "0 1px",
     display: "inline-block",
     textAlign: "center",
     fontSize: "1.2em",
     lineHeight: "1.2",
-    height: "20px",
+    // height: "20px",
     transitionProperty: "background-color, color",
     transitionDuration: ".5s",
     transitionTimingFunction: "linear",
@@ -49,19 +55,32 @@ const ShadowWordSpan = ({ word, lastWord }: ShadowWordProps) => {
   return <span style={style}>{text}</span>;
 };
 
+const loadCache = (
+  key: string
+): {
+  currentShadowWords: ShadowWord[];
+  allShadowWords: ShadowWord[];
+} => {
+  const cache = window.localStorage.getItem(key) || "[]";
+  return { currentShadowWords: [], allShadowWords: JSON.parse(cache) };
+};
+
 const App = () => {
+  const [title, setTitle] = useState<ShadowWordsCloud>([]);
   const [synopsis, setSynopsis] = useState<ShadowWordsCloud>([]);
-  const [synopsisContent, setSynopsisContent] = useState<React.ReactElement>(
-    <Fragment />
-  );
+  const [matchedWords, setMatchedWords] = useState<{
+    currentShadowWords: ShadowWord[];
+    allShadowWords: ShadowWord[];
+  }>(loadCache("matchedWords"));
   const [hintsRow, setHintsRow] = useState<React.ReactElement>(<Fragment />);
   const [lastWord, setLastWord] = useState<string>("");
   const [requestedWord, setRequestedWord] = useState<string>("");
   useEffect(() => {
     const fetchData = async () => {
-      const response = await axios.get<ShadowWordsCloud>(GET_CURRENT_GAME_URL);
+      const response = await axios.get<RedactedGame>(GET_CURRENT_GAME_URL);
       if (response.status === 200) {
-        setSynopsis(response.data);
+        setTitle(response.data.redactedTitle);
+        setSynopsis(response.data.redactedSynopsis);
       }
     };
     fetchData();
@@ -71,13 +90,38 @@ const App = () => {
   }, []);
 
   useEffect(() => {
+    console.log("save matchedWords");
+    localStorage.setItem(
+      "matchedWords",
+      JSON.stringify(matchedWords.allShadowWords)
+    );
+  }, [matchedWords]);
+
+  const content = useMemo(() => {
+    const newTitleContent = title.map((line, row) => {
+      return (
+        <h1 key={`movie-title-${row}`}>
+          <p>
+            {line.map((word, index) => {
+              return (
+                <ShadowWordSpan
+                  key={`child-movie-title-${row}-${index}`}
+                  word={word}
+                  lastWord={lastWord}
+                />
+              );
+            })}
+          </p>
+        </h1>
+      );
+    });
     const newSynopsisContent = synopsis.map((line, row) => {
       return (
-        <p>
+        <p key={`synopsis-${row}`}>
           {line.map((word, index) => {
             return (
               <ShadowWordSpan
-                key={`title-${row}-${index}`}
+                key={`child-synopsis-${row}-${index}`}
                 word={word}
                 lastWord={lastWord}
               />
@@ -86,7 +130,7 @@ const App = () => {
         </p>
       );
     });
-    setSynopsisContent(
+    return (
       <Box
         sx={{
           margin: "0 auto",
@@ -100,49 +144,126 @@ const App = () => {
           overflow: "auto",
         }}
       >
+        {newTitleContent}
         {newSynopsisContent}
       </Box>
     );
-  }, [synopsis, lastWord]);
+  }, [synopsis, lastWord, title]);
 
   const submitWord = async () => {
     console.log("start submitWord:");
-
+    localStorage.setItem("TEST!!!!", "bonjour");
     const { data: scoredWords } = await axios.get<ShadowWord[]>(
       `${GET_SCORE_FOR_WORD_URL}${requestedWord}`
     );
-    const wordsIDs = scoredWords.map((w) => w.id);
-    let newMatchedHints = "";
-    let newNearHints = "";
-    const modifiedSyno = synopsis.map((row) =>
-      row.map((s) => {
-        const index = wordsIDs.indexOf(s.id);
-        const isSimilar = index !== -1 && scoredWords[index].similarity === 1;
-        const isBetterFittedOrSimilar =
-          isSimilar ||
-          (index !== -1 && scoredWords[index].similarity > s.similarity);
-        if (index !== -1 && isBetterFittedOrSimilar) {
-          if (isSimilar) {
-            newMatchedHints += "🟩";
-          } else {
-            newNearHints += "🟧";
-          }
-          return scoredWords[index];
-        }
-        return s;
-      })
-    );
-    let fullHintsRow = newMatchedHints + newNearHints;
-    if (fullHintsRow.length === 0) {
-      fullHintsRow = "🟥";
-    }
 
-    setSynopsis(modifiedSyno);
     setLastWord(requestedWord);
     setRequestedWord("");
-    setHintsRow(<span>{`${requestedWord}: ${fullHintsRow}`}</span>);
+    setMatchedWords((prev) => {
+      return {
+        currentShadowWords: scoredWords,
+        allShadowWords: [...prev.allShadowWords, ...scoredWords],
+      };
+    });
     console.log("end submitWord:");
   };
+  useEffect(() => {
+    const previousWordsIDs = matchedWords.allShadowWords.map((w) => w.id);
+    // console.log("REDACTING! ==>", previousWordsIDs);
+    const wordsIDs = matchedWords.currentShadowWords.map((w) => w.id);
+
+    setTitle((previous) =>
+      previous.map((row) =>
+        row.map((s) => {
+          const index = wordsIDs.indexOf(s.id);
+          const isSimilar =
+            index !== -1 &&
+            matchedWords.currentShadowWords[index].similarity === 1;
+          const isBetterFittedOrSimilar =
+            isSimilar ||
+            (index !== -1 &&
+              matchedWords.currentShadowWords[index].similarity > s.similarity);
+          if (index !== -1 && isBetterFittedOrSimilar) {
+            return matchedWords.currentShadowWords[index];
+          }
+          const previousIndex = previousWordsIDs.indexOf(s.id);
+          console.log("previousIndex: ", previousIndex);
+          if (previousIndex !== -1) {
+            // console.log("previousIndex: ", previousIndex);
+            console.log(
+              "found old: ",
+              matchedWords.allShadowWords[previousIndex]
+            );
+
+            return matchedWords.allShadowWords[previousIndex];
+          }
+          return s;
+        })
+      )
+    );
+    setSynopsis((previous) =>
+      previous.map((row) =>
+        row.map((s) => {
+          const index = wordsIDs.indexOf(s.id);
+          const isSimilar =
+            index !== -1 &&
+            matchedWords.currentShadowWords[index].similarity === 1;
+          const isBetterFittedOrSimilar =
+            isSimilar ||
+            (index !== -1 &&
+              matchedWords.currentShadowWords[index].similarity > s.similarity);
+          if (index !== -1 && isBetterFittedOrSimilar) {
+            return matchedWords.currentShadowWords[index];
+          }
+          const previousIndex = previousWordsIDs.indexOf(s.id);
+          console.log("previousIndex: ", previousIndex);
+          if (previousIndex !== -1) {
+            // console.log("previousIndex: ", previousIndex);
+            console.log(
+              "found old: ",
+              matchedWords.allShadowWords[previousIndex]
+            );
+
+            return matchedWords.allShadowWords[previousIndex];
+          }
+          return s;
+        })
+      )
+    );
+  }, [matchedWords, lastWord]);
+
+  useEffect(() => {
+    setHintsRow(() => {
+      const wordsIDs = matchedWords.currentShadowWords.map((w) => w.id);
+      let newMatchedHints = "";
+      let newNearHints = "";
+      [...title, ...synopsis].forEach((row) => {
+        row.forEach((s) => {
+          const index = wordsIDs.indexOf(s.id);
+          const isSimilar =
+            index !== -1 &&
+            matchedWords.currentShadowWords[index].similarity === 1;
+          const isBetterFittedOrSimilar =
+            isSimilar ||
+            (index !== -1 &&
+              matchedWords.currentShadowWords[index].similarity > s.similarity);
+          if (index !== -1 && isBetterFittedOrSimilar) {
+            if (isSimilar) {
+              newMatchedHints += "🟩";
+            } else {
+              newNearHints += "🟧";
+            }
+          }
+        });
+      });
+
+      let fullHintsRow = newMatchedHints + newNearHints;
+      if (fullHintsRow.length === 0) {
+        fullHintsRow = "🟥";
+      }
+      return <span>{`${lastWord}: ${fullHintsRow}`}</span>;
+    });
+  }, [matchedWords, lastWord, title, synopsis]);
 
   const makeRedactedMessages = (synopsis: ShadowWordsCloud): JSX.Element => {
     if (synopsis.length === 0) {
@@ -158,7 +279,9 @@ const App = () => {
     ) => {
       setRequestedWord(event.target.value);
     };
-
+    const foundTitle = title.every((row) => {
+      return row.every((s) => s.similarity === 1);
+    });
     return (
       <Stack
         sx={{
@@ -171,6 +294,7 @@ const App = () => {
         spacing={2}
       >
         <Typography variant="h1">! SYNOPTIX !</Typography>
+
         <Box>
           <TextField
             // inputProps={{ class backgroundColor: 'white' }}
@@ -187,8 +311,13 @@ const App = () => {
             onKeyUp={handleKeyboardEvent}
           />
         </Box>
+        <Collapse in={foundTitle}>
+          <Box sx={{ backgroundColor: "lime", padding: 1, borderRadius:'5px' }}>
+            <h1>BRAVO</h1>
+          </Box>
+        </Collapse>
         {hintsRow}
-        {synopsisContent}
+        {content}
       </Stack>
     );
   };

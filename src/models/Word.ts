@@ -7,4 +7,9 @@ export interface ShadowWord {
 
 export type Word = Record<string, number>;
 
-  export type ShadowWordsCloud = ShadowWord[][]
+export type ShadowWordsCloud = ShadowWord[][];
+
+export interface RedactedGame {
+  redactedTitle: ShadowWordsCloud;
+  redactedSynopsis: ShadowWordsCloud;
+}
