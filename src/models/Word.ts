@@ -49,9 +49,6 @@ export const replaceWords =
         const comparedWord = dictionaries.allShadowWords[s.id.toString()]
         if (comparedWord) {
             if (comparedWord.isBetterFittedOrSimilar(s)) {
-                console.log(
-                    `${s.closestWord} (${s.similarity}) is replaced by ${comparedWord.closestWord}  (${comparedWord.similarity})`
-                )
                 return comparedWord
             } else {
                 return s

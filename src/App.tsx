@@ -24,25 +24,29 @@ const GET_SCORE_FOR_WORD_URL =
 interface ShadowWordProps extends React.ComponentProps<'span'> {
     word: ShadowWord
     lastWord: string
+    isLastWord: boolean
 }
 
-const ShadowWordSpan = ({ word, lastWord }: ShadowWordProps) => {
+const ShadowWordSpan = ({ word, lastWord, isLastWord }: ShadowWordProps) => {
     const html_tag_regexp = /<\/?.?>/g
     const isAnHTMLTag = word.closestWord.match(html_tag_regexp)
     if (isAnHTMLTag && isAnHTMLTag[0] === word.closestWord) {
         return <span dangerouslySetInnerHTML={{ __html: word.closestWord }} />
     }
     const isSimilar = word.similarity === 1
-    const isLastWord =
-        word.closestWord.toLocaleLowerCase() === lastWord.toLocaleLowerCase()
+    const isLastWordSimilar = isSimilar && isLastWord
     const style: React.CSSProperties = {
         fontFamily: 'monospace',
         borderRadius: '3px',
-        backgroundColor: isSimilar ? 'transparent' : '#333',
+        backgroundColor: isLastWordSimilar
+            ? 'lime'
+            : isSimilar
+            ? 'transparent'
+            : '#333',
         color: isSimilar ? 'black' : isLastWord ? 'orange' : 'grey',
         // width: `${word.shadowWord.length * 10}px`,
         whiteSpace: 'pre',
-        padding: isSimilar ? '0' : '0 3px',
+        padding: isSimilar && !isLastWordSimilar ? '0' : '0 3px',
         // margin: isSimilar ? "inherit" : "0 1px",
         display: 'inline-block',
         textAlign: 'center',
@@ -54,9 +58,7 @@ const ShadowWordSpan = ({ word, lastWord }: ShadowWordProps) => {
         transitionTimingFunction: 'linear',
     }
     const text =
-        word.closestWord.length > 0
-            ? word.closestWord.toString()
-            : word.shadowWord
+        word.closestWord.length > 0 ? word.closestWord : word.shadowWord
 
     return <span style={style}>{text}</span>
 }
@@ -115,12 +117,12 @@ const App = () => {
         }
         fetchData()
         return () => {
-            console.log('cleanup')
+            // console.log('cleanup')
         }
     }, [matchedWords])
 
     useEffect(() => {
-        console.log('save matchedWords')
+        // console.log('save matchedWords')
         localStorage.setItem(
             'matchedWords',
             JSON.stringify(matchedWords.allShadowWords)
@@ -129,6 +131,8 @@ const App = () => {
     }, [matchedWords])
 
     const content = useMemo(() => {
+        const latestWordIDs = Object.keys(matchedWords.currentShadowWords)
+
         const newTitleContent = title.map((line, row) => {
             return (
                 <h1 key={`movie-title-${row}`}>
@@ -139,6 +143,9 @@ const App = () => {
                                     key={`child-movie-title-${row}-${index}`}
                                     word={word}
                                     lastWord={lastWord}
+                                    isLastWord={latestWordIDs.some(
+                                        (id) => id === word.id.toString()
+                                    )}
                                 />
                             )
                         })}
@@ -155,6 +162,9 @@ const App = () => {
                                 key={`child-synopsis-${row}-${index}`}
                                 word={word}
                                 lastWord={lastWord}
+                                isLastWord={latestWordIDs.some(
+                                    (id) => id === word.id.toString()
+                                )}
                             />
                         )
                     })}
@@ -178,10 +188,10 @@ const App = () => {
                 {newSynopsisContent}
             </Box>
         )
-    }, [lastWord, synopsis, title])
+    }, [lastWord, matchedWords.currentShadowWords, synopsis, title])
 
     const submitWord = async () => {
-        console.log('start submitWord:')
+        // console.log('start submitWord:')
         const { data: scoredWords } = await axios.get<ShadowWord[]>(
             `${GET_SCORE_FOR_WORD_URL}${requestedWord}`
         )
@@ -194,7 +204,14 @@ const App = () => {
                 currentShadowWords: scoredWords.reduce<
                     Record<number, ShadowWord>
                 >((acc, w) => {
-                    acc[w.id] = new ShadowWord(w)
+                    const existingShadowWord = prev.allShadowWords[w.id]
+                    if (
+                        w.similarity === 1 ||
+                        !existingShadowWord ||
+                        existingShadowWord.similarity < w.similarity
+                    ) {
+                        acc[w.id] = new ShadowWord(w)
+                    }
                     return acc
                 }, {}),
                 allShadowWords: {
@@ -214,48 +231,40 @@ const App = () => {
                 },
             }
         })
-        console.log('end submitWord:')
+        // console.log('end submitWord:')
     }
     useEffect(() => {
-        console.log(
-            `################################################################################`
-        )
         setTitle((previous) =>
             previous.map((row) => row.map(replaceWords(matchedWords)))
         )
         setSynopsis((previous) =>
             previous.map((row) => row.map(replaceWords(matchedWords)))
         )
-        console.log(
-            `################################################################################`
-        )
     }, [matchedWords])
 
     useEffect(() => {
-        setHintsRow(() => {
-            // const wordsIDs = matchedWords.currentShadowWords.map((w) => w.id)
-            let newMatchedHints = ''
-            let newNearHints = ''
-            ;[...title, ...synopsis].forEach((row) => {
-                row.forEach((s) => {
-                    const matchedWord =
-                        matchedWords.currentShadowWords[s.id.toString()]
-                    if (matchedWord && matchedWord.isBetterFittedOrSimilar(s)) {
-                        if (matchedWord.isSimilar(s)) {
-                            newMatchedHints += '🟩'
-                        } else {
-                            newNearHints += '🟧'
-                        }
+        // const wordsIDs = matchedWords.currentShadowWords.map((w) => w.id)
+        let newMatchedHints = ''
+        let newNearHints = ''
+        ;[...title, ...synopsis].forEach((row) => {
+            row.forEach((s) => {
+                const matchedWord =
+                    matchedWords.currentShadowWords[s.id.toString()]
+                if (matchedWord) {
+                    if (matchedWord.isSimilar(s)) {
+                        newMatchedHints += '🟩'
+                    } else {
+                        newNearHints += '🟧'
                     }
-                })
+                }
             })
-
-            let fullHintsRow = newMatchedHints + newNearHints
-            if (fullHintsRow.length === 0) {
-                fullHintsRow = '🟥'
-            }
-            return <span>{`${lastWord}: ${fullHintsRow}`}</span>
         })
+
+        let fullHintsRow = newMatchedHints + newNearHints
+        if (fullHintsRow.length === 0) {
+            fullHintsRow = '🟥'
+        }
+        setHintsRow(<span>{`${lastWord}: ${fullHintsRow}`}</span>)
     }, [matchedWords, lastWord, title, synopsis])
 
     const makeRedactedMessages = (synopsis: ShadowWordsCloud): JSX.Element => {
