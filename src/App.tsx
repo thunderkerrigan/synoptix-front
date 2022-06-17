@@ -35,7 +35,6 @@ const ShadowWordSpan = ({ word, lastWord }: ShadowWordProps) => {
     const isSimilar = word.similarity === 1
     const isLastWord =
         word.closestWord.toLocaleLowerCase() === lastWord.toLocaleLowerCase()
-    // const isSimilarAndLastWord = isSimilar && isLastWord;
     const style: React.CSSProperties = {
         fontFamily: 'monospace',
         borderRadius: '3px',
@@ -92,15 +91,17 @@ const App = () => {
             const response = await axios.get<RedactedGame>(GET_CURRENT_GAME_URL)
             if (response.status === 200) {
                 setTitle(
-                    response.data.redactedTitle.map(
-                        (c) => c.map((w) => new ShadowWord(w))
-                        .map(replaceWords(matchedWords))
+                    response.data.redactedTitle.map((c) =>
+                        c
+                            .map((w) => new ShadowWord(w))
+                            .map(replaceWords(matchedWords))
                     )
                 )
                 setSynopsis(
-                    response.data.redactedSynopsis.map(
-                        (c) => c.map((w) => new ShadowWord(w))
-                        .map(replaceWords(matchedWords))
+                    response.data.redactedSynopsis.map((c) =>
+                        c
+                            .map((w) => new ShadowWord(w))
+                            .map(replaceWords(matchedWords))
                     )
                 )
             }
@@ -177,7 +178,7 @@ const App = () => {
                 {newSynopsisContent}
             </Box>
         )
-    }, [synopsis, lastWord, title])
+    }, [lastWord, synopsis, title])
 
     const submitWord = async () => {
         console.log('start submitWord:')
@@ -216,13 +217,19 @@ const App = () => {
         console.log('end submitWord:')
     }
     useEffect(() => {
+        console.log(
+            `################################################################################`
+        )
         setTitle((previous) =>
             previous.map((row) => row.map(replaceWords(matchedWords)))
         )
         setSynopsis((previous) =>
             previous.map((row) => row.map(replaceWords(matchedWords)))
         )
-    }, [matchedWords, lastWord])
+        console.log(
+            `################################################################################`
+        )
+    }, [matchedWords])
 
     useEffect(() => {
         setHintsRow(() => {

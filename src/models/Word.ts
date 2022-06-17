@@ -1,5 +1,3 @@
-import { Class } from '@mui/icons-material'
-
 export interface ShadowWord {
     id: number
     closestWord: string
@@ -24,7 +22,7 @@ export class ShadowWord implements ShadowWord {
     }
     isSimilar = (comparedWord: ShadowWord) => comparedWord.similarity === 1
     isBetterFitted = (comparedWord: ShadowWord) =>
-        comparedWord.similarity < this.similarity
+        this.similarity > comparedWord.similarity
     isBetterFittedOrSimilar = (comparedWord: ShadowWord) =>
         this.isSimilar(comparedWord) || this.isBetterFitted(comparedWord)
 }
@@ -48,16 +46,15 @@ export interface WordsDictionary {
 export const replaceWords =
     (dictionaries: WordsDictionary) =>
     (s: ShadowWord): ShadowWord => {
-        const comparedWord = dictionaries.currentShadowWords[s.id.toString()]
+        const comparedWord = dictionaries.allShadowWords[s.id.toString()]
         if (comparedWord) {
-            return comparedWord.isBetterFittedOrSimilar(s) ? comparedWord : s
-        } else {
-            const previousComparedWord =
-                dictionaries.allShadowWords[s.id.toString()]
-            if (previousComparedWord) {
-                return previousComparedWord.isBetterFittedOrSimilar(s)
-                    ? previousComparedWord
-                    : s
+            if (comparedWord.isBetterFittedOrSimilar(s)) {
+                console.log(
+                    `${s.closestWord} (${s.similarity}) is replaced by ${comparedWord.closestWord}  (${comparedWord.similarity})`
+                )
+                return comparedWord
+            } else {
+                return s
             }
         }
         return s
