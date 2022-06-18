@@ -143,6 +143,7 @@ const App = () => {
       JSON.stringify(matchedWords.allShadowWords)
     );
     localStorage.setItem("gameID", JSON.stringify(matchedWords.gameID));
+    localStorage.setItem("foundBy", JSON.stringify(matchedWords.foundBy));
   }, [matchedWords]);
 
   const content = useMemo(() => {
