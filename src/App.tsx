@@ -83,6 +83,8 @@ const ShadowWordSpan = ({ word, lastWord, isLastWord }: ShadowWordProps) => {
 const loadCache = (): WordsDictionary => {
   const cacheMatchedWords = window.localStorage.getItem("matchedWords") || "{}";
   const cacheGameID = window.localStorage.getItem("gameID") || "-1";
+  const cacheFoundBy = window.localStorage.getItem("foundBy") || "0";
+  const foundBy = parseInt(cacheFoundBy);
   const gameID = parseInt(cacheGameID);
   const allShadowWordsRaw = JSON.parse(cacheMatchedWords);
   const allShadowWords = Object.entries<ShadowWord>(allShadowWordsRaw).reduce<
@@ -92,7 +94,7 @@ const loadCache = (): WordsDictionary => {
     return acc;
   }, {});
 
-  return { gameID, currentShadowWords: {}, allShadowWords };
+  return { gameID, currentShadowWords: {}, allShadowWords, foundBy };
 };
 
 const App = () => {
@@ -124,6 +126,7 @@ const App = () => {
           gameID: response.data.gameID,
           currentShadowWords: {},
           allShadowWords: {},
+          foundBy: response.data.foundBy,
         });
       }
     };
@@ -206,41 +209,46 @@ const App = () => {
   const submitWord = async () => {
     // console.log('start submitWord:')
     const trimmedWord = requestedWord.replace(" ", "");
-    const { data: scoredWords } = await axios.get<ShadowWord[]>(
-      `${GET_SCORE_FOR_WORD_URL}${trimmedWord}`
-    );
+    const wordIDs = title
+      .reduce((acc, curr) => [...acc, ...curr], [])
+      .map((w) => w.id);
+    const { data: scoredWords } = await axios.post<{
+      score: ShadowWord[];
+      foundBy: number;
+    }>(GET_SCORE_FOR_WORD_URL, { word: trimmedWord, wordIDs });
 
     setLastWord(trimmedWord);
     setRequestedWord("");
     setMatchedWords((prev) => {
+      const newAllShadowWords = {
+        ...prev.allShadowWords,
+        ...scoredWords.score
+          .filter((w) => {
+            const foundPrevious = prev.allShadowWords[w.id];
+            return !foundPrevious || foundPrevious.similarity < w.similarity;
+          })
+          .reduce<Record<number, ShadowWord>>((acc, w) => {
+            acc[w.id] = new ShadowWord(w);
+            return acc;
+          }, {}),
+      };
       return {
         gameID: prev.gameID,
-        currentShadowWords: scoredWords.reduce<Record<number, ShadowWord>>(
-          (acc, w) => {
-            const existingShadowWord = prev.allShadowWords[w.id];
-            if (
-              w.similarity === 1 ||
-              !existingShadowWord ||
-              existingShadowWord.similarity < w.similarity
-            ) {
-              acc[w.id] = new ShadowWord(w);
-            }
-            return acc;
-          },
-          {}
-        ),
-        allShadowWords: {
-          ...prev.allShadowWords,
-          ...scoredWords
-            .filter((w) => {
-              const foundPrevious = prev.allShadowWords[w.id];
-              return !foundPrevious || foundPrevious.similarity < w.similarity;
-            })
-            .reduce<Record<number, ShadowWord>>((acc, w) => {
-              acc[w.id] = new ShadowWord(w);
-              return acc;
-            }, {}),
-        },
+        foundBy: scoredWords.foundBy,
+        currentShadowWords: scoredWords.score.reduce<
+          Record<number, ShadowWord>
+        >((acc, w) => {
+          const existingShadowWord = prev.allShadowWords[w.id];
+          if (
+            w.similarity === 1 ||
+            !existingShadowWord ||
+            existingShadowWord.similarity < w.similarity
+          ) {
+            acc[w.id] = new ShadowWord(w);
+          }
+          return acc;
+        }, {}),
+        allShadowWords: newAllShadowWords,
       };
     });
     // console.log('end submitWord:')
@@ -324,7 +332,7 @@ const App = () => {
             onKeyUp={handleKeyboardEvent}
           />
         </Box>
-        <Collapse in={foundTitle}>
+        <Collapse in={foundTitle} timeout={800} unmountOnExit={true}>
           <Box
             sx={{
               backgroundColor: "lime",
@@ -333,6 +341,14 @@ const App = () => {
             }}
           >
             <h1>BRAVO</h1>
+            <p>
+              <span>vous êtes </span>
+              <b>{matchedWords.foundBy}</b>
+              <span> à avoir trouvé le film, en </span>
+              <b>{`${Object.keys(matchedWords.allShadowWords).length} coup${
+                Object.keys(matchedWords.allShadowWords).length > 1 ? "s" : ""
+              }`}</b>
+            </p>
           </Box>
         </Collapse>
         {hintsRow}
