@@ -20,6 +20,7 @@ import { ShadowWordSpan } from "./components/ShadowWordSpan";
 import { useGetRequest } from "./hooks/useGetRequest";
 import { usePostRequest } from "./hooks/usePostRequest";
 import { ScoreRequest, ScoreResponse } from "./models/Request";
+import Footer from "./components/Footer";
 // import parse from "html-react-parser";
 
 const GET_CURRENT_GAME_URL = process.env.REACT_APP_GET_CURRENT_GAME_URL || "";
@@ -52,8 +53,7 @@ const App = () => {
   const [hintsRow, setHintsRow] = useState<React.ReactElement>(<Fragment />);
   const [lastWord, setLastWord] = useState<string>("");
   const [requestedWord, setRequestedWord] = useState<string>("");
-  const [game, gameRequest] =
-    useGetRequest<RedactedGame>(GET_CURRENT_GAME_URL);
+  const [game, gameRequest] = useGetRequest<RedactedGame>(GET_CURRENT_GAME_URL);
   const [score, scoreRequest, isScoreLoading] = usePostRequest<
     ScoreRequest,
     ScoreResponse
@@ -307,7 +307,10 @@ const App = () => {
         </Collapse>
         {hintsRow}
         {content}
+        {/* <Stack direction="row" spacing="auto"> */}
+        <Footer />
       </Stack>
+      // </Stack>
     );
   };
   return (
