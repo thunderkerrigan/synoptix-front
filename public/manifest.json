@@ -1,6 +1,6 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "Synoptix",
+  "name": "Trouver le film avec son synopsis chaque jour!",
   "icons": [
     {
       "src": "favicon.ico",
