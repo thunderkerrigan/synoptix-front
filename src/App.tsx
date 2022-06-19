@@ -157,13 +157,15 @@ const App = () => {
   const submitWord = async () => {
     // console.log('start submitWord:')
     const trimmedWord = requestedWord.replace(" ", "");
-    const wordIDs = title
-      .reduce((acc, curr) => [...acc, ...curr], [])
-      .map((w) => w.id);
-    scoreRequest({ word: trimmedWord, wordIDs });
+    if (trimmedWord.length > 0) {
+      const wordIDs = title
+        .reduce((acc, curr) => [...acc, ...curr], [])
+        .map((w) => w.id);
+      scoreRequest({ word: trimmedWord, wordIDs });
 
-    setLastWord(trimmedWord);
-    setRequestedWord("");
+      setLastWord(trimmedWord);
+      setRequestedWord("");
+    }
   };
 
   useEffect(() => {
@@ -223,9 +225,7 @@ const App = () => {
       matchedWords.currentShadowWords
     );
     let fullHintsRow = makeHintsCountText(newMatchedHints, newNearHints);
-    if (fullHintsRow.length === 0) {
-      fullHintsRow = "🟥";
-    }
+
     setHintsRow(
       <p>
         <b>{`${lastWord}: ${fullHintsRow}`}</b>

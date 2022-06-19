@@ -6,6 +6,9 @@ export const makeHintsCountText = (
 ): string => {
   const greenText = concatenateHintsCount(greenHints);
   const orangeText = concatenateHintsCount(orangeHints);
+  if (greenText.length === 0 && orangeText.length === 0) {
+    return "🟥";
+  }
   return `${greenText}\n${orangeText}`;
 };
 
@@ -35,5 +38,6 @@ export const countHints = (
       }
     });
   });
+
   return { newMatchedHints, newNearHints };
 };
