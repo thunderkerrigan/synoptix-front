@@ -52,7 +52,7 @@ const App = () => {
   const [hintsRow, setHintsRow] = useState<React.ReactElement>(<Fragment />);
   const [lastWord, setLastWord] = useState<string>("");
   const [requestedWord, setRequestedWord] = useState<string>("");
-  const [game, gameRequest, isGameLoading] =
+  const [game, gameRequest] =
     useGetRequest<RedactedGame>(GET_CURRENT_GAME_URL);
   const [score, scoreRequest, isScoreLoading] = usePostRequest<
     ScoreRequest,
