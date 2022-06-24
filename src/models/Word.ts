@@ -42,7 +42,10 @@ export interface RedactedGame {
 }
 
 export interface WordsDictionary {
+  userID: string;
   gameID: number;
+  foundScore: number;
+  scoreCount: number;
   currentShadowWords: Record<string, ShadowWord>;
   allShadowWords: Record<string, ShadowWord>;
   foundBy: number;

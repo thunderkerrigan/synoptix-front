@@ -21,6 +21,8 @@ import { useGetRequest } from "./hooks/useGetRequest";
 import { usePostRequest } from "./hooks/usePostRequest";
 import { ScoreRequest, ScoreResponse } from "./models/Request";
 import Footer from "./components/Footer";
+import { v4 as uuid } from "uuid";
+import { log } from "console";
 // import parse from "html-react-parser";
 
 const GET_CURRENT_GAME_URL = process.env.REACT_APP_GET_CURRENT_GAME_URL || "";
@@ -31,8 +33,13 @@ const loadCache = (): WordsDictionary => {
   const cacheMatchedWords = window.localStorage.getItem("matchedWords") || "{}";
   const cacheGameID = window.localStorage.getItem("gameID") || "-1";
   const cacheFoundBy = window.localStorage.getItem("foundBy") || "0";
+  const cacheScoreCount = window.localStorage.getItem("scoreCount") || "0";
+  const cacheFoundScore = window.localStorage.getItem("foundScore") || "-1";
+  const userID = window.localStorage.getItem("userID") || uuid();
   const foundBy = parseInt(cacheFoundBy);
+  const foundScore = parseInt(cacheFoundScore);
   const gameID = parseInt(cacheGameID);
+  const scoreCount = parseInt(cacheScoreCount);
   const allShadowWordsRaw = JSON.parse(cacheMatchedWords);
   const allShadowWords = Object.entries<ShadowWord>(allShadowWordsRaw).reduce<
     Record<string, ShadowWord>
@@ -41,7 +48,15 @@ const loadCache = (): WordsDictionary => {
     return acc;
   }, {});
 
-  return { gameID, currentShadowWords: {}, allShadowWords, foundBy };
+  return {
+    userID,
+    gameID,
+    scoreCount,
+    foundScore,
+    currentShadowWords: {},
+    allShadowWords,
+    foundBy,
+  };
 };
 
 const App = () => {
@@ -77,6 +92,9 @@ const App = () => {
       );
       if (game.gameID !== matchedWords.gameID) {
         setMatchedWords({
+          userID: matchedWords.userID,
+          scoreCount: 0,
+          foundScore: -1,
           gameID: game.gameID,
           currentShadowWords: {},
           allShadowWords: {},
@@ -93,6 +111,9 @@ const App = () => {
     );
     localStorage.setItem("gameID", JSON.stringify(matchedWords.gameID));
     localStorage.setItem("foundBy", JSON.stringify(matchedWords.foundBy));
+    localStorage.setItem("userID", JSON.stringify(matchedWords.userID));
+    localStorage.setItem("scoreCount", JSON.stringify(matchedWords.scoreCount));
+    localStorage.setItem("foundScore", JSON.stringify(matchedWords.foundScore));
   }, [matchedWords]);
 
   const content = useMemo(() => {
@@ -161,16 +182,28 @@ const App = () => {
       const wordIDs = title
         .reduce((acc, curr) => [...acc, ...curr], [])
         .map((w) => w.id);
-      scoreRequest({ word: trimmedWord, wordIDs });
+      scoreRequest({ word: trimmedWord, wordIDs, userID: matchedWords.userID });
 
       setLastWord(trimmedWord);
       setRequestedWord("");
     }
   };
+  useEffect(() => {
+    if (
+      matchedWords.foundScore === -1 &&
+      title.every((row) => {
+        return row.every((s) => s.similarity === 1);
+      })
+    ) {
+      setMatchedWords((prev) => ({ ...prev, foundScore: prev.foundBy }));
+    }
+  }, [matchedWords.foundScore, title]);
 
   useEffect(() => {
     if (score) {
       const { score: newScore, foundBy } = score;
+      console.log("foundBy:", foundBy);
+
       setMatchedWords((prev) => {
         const newAllShadowWords = {
           ...prev.allShadowWords,
@@ -184,8 +217,11 @@ const App = () => {
               return acc;
             }, {}),
         };
+
         return {
-          gameID: prev.gameID,
+          ...prev,
+          scoreCount:
+            prev.foundScore !== -1 ? prev.scoreCount : prev.scoreCount + 1,
           foundBy,
           currentShadowWords: newScore.reduce<Record<number, ShadowWord>>(
             (acc, w) => {
@@ -211,6 +247,7 @@ const App = () => {
     setTitle((previous) =>
       previous.map((row) => row.map(replaceWords(matchedWords)))
     );
+
     setSynopsis((previous) =>
       previous.map((row) => row.map(replaceWords(matchedWords)))
     );
@@ -239,7 +276,7 @@ const App = () => {
     }
     const handleKeyboardEvent = (e: KeyboardEvent<HTMLImageElement>) => {
       // console.log("key:", e.key);
-      e.key === "Enter" && submitWord();
+      !isScoreLoading && e.key === "Enter" && submitWord();
     };
 
     const handleScoreTextfieldChange = (
@@ -247,6 +284,7 @@ const App = () => {
     ) => {
       setRequestedWord(event.target.value);
     };
+
     const foundTitle = title.every((row) => {
       return row.every((s) => s.similarity === 1);
     });
@@ -272,7 +310,7 @@ const App = () => {
                 boxShadow: "inset 0px 0px 4px black",
               },
             }}
-            label="Enter a word"
+            label="Saisir un mot/nombre/lettre"
             id="score-id"
             value={requestedWord}
             onChange={handleScoreTextfieldChange}
@@ -297,10 +335,13 @@ const App = () => {
             <h1>BRAVO</h1>
             <p>
               <span>vous êtes </span>
-              <b>{matchedWords.foundBy}</b>
+              <b>
+                {matchedWords.foundScore}
+                <sup>e</sup>
+              </b>
               <span> à avoir trouvé le film, en </span>
-              <b>{`${Object.keys(matchedWords.allShadowWords).length} coup${
-                Object.keys(matchedWords.allShadowWords).length > 1 ? "s" : ""
+              <b>{`${matchedWords.scoreCount} coup${
+                matchedWords.scoreCount > 1 ? "s" : ""
               }`}</b>
             </p>
           </Box>

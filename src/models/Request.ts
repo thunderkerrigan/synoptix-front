@@ -1,6 +1,7 @@
 import { ShadowWord } from "./Word";
 
 export interface ScoreRequest {
+  userID: string;
   word: string;
   wordIDs: number[];
 }
