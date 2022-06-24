@@ -22,7 +22,6 @@ import { usePostRequest } from "./hooks/usePostRequest";
 import { ScoreRequest, ScoreResponse } from "./models/Request";
 import Footer from "./components/Footer";
 import { v4 as uuid } from "uuid";
-import { log } from "console";
 // import parse from "html-react-parser";
 
 const GET_CURRENT_GAME_URL = process.env.REACT_APP_GET_CURRENT_GAME_URL || "";
