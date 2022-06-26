@@ -217,6 +217,7 @@ const App = () => {
     if (trimmedWord.length > 0) {
       const wordIDs = title
         .reduce((acc, curr) => [...acc, ...curr], [])
+        .filter((w) => w.similarity === 1)
         .map((w) => w.id);
       scoreRequest({ word: trimmedWord, wordIDs, userID: matchedWords.userID });
       setLastWord(trimmedWord);
@@ -226,6 +227,7 @@ const App = () => {
   useEffect(() => {
     if (
       matchedWords.foundScore === -1 &&
+      title.length > 0 &&
       title.every((row) => {
         return row.every((s) => s.similarity === 1);
       })
