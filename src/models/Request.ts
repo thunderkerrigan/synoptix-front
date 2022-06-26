@@ -1,4 +1,4 @@
-import { ShadowWord } from "./Word";
+import { ShadowWord, ShadowWordsCloud } from "./Word";
 
 export interface ScoreRequest {
   userID: string;
@@ -9,4 +9,5 @@ export interface ScoreRequest {
 export interface ScoreResponse {
   score: ShadowWord[];
   foundBy: number;
+  response?: ShadowWordsCloud;
 }

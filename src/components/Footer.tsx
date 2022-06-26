@@ -3,7 +3,7 @@ import React from "react";
 
 const Footer = () => {
   return (
-    <p>
+    <p style={{ position: "static", bottom: 0, margin: "32px 0" }}>
       <Typography variant="caption">{"Rédigé par "}</Typography>
       <Link
         target="_blank"

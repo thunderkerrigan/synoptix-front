@@ -46,15 +46,17 @@ export interface WordsDictionary {
   gameID: number;
   foundScore: number;
   scoreCount: number;
+  response: ShadowWordsCloud;
+  summarizedGame: string;
   currentShadowWords: Record<string, ShadowWord>;
   allShadowWords: Record<string, ShadowWord>;
   foundBy: number;
 }
 
 export const replaceWords =
-  (dictionaries: WordsDictionary) =>
+  (allShadowWords: Record<string, ShadowWord>) =>
   (s: ShadowWord): ShadowWord => {
-    const comparedWord = dictionaries.allShadowWords[s.id.toString()];
+    const comparedWord = allShadowWords[s.id.toString()];
     if (comparedWord) {
       if (comparedWord.isBetterFittedOrSimilar(s)) {
         return comparedWord;

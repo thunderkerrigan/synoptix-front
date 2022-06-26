@@ -1,10 +1,4 @@
-import React, {
-  useState,
-  useEffect,
-  Fragment,
-  KeyboardEvent,
-  useMemo,
-} from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import "./App.css";
 import {
   RedactedGame,
@@ -13,61 +7,109 @@ import {
   ShadowWordsCloud,
   WordsDictionary,
 } from "./models/Word";
-import { Box, Collapse, Stack, TextField, Typography } from "@mui/material";
-import { LoadingButton } from "@mui/lab";
-import { countHints, makeHintsCountText } from "./utils/text";
-import { ShadowWordSpan } from "./components/ShadowWordSpan";
+import {
+  Box,
+  LinearProgress,
+  Stack,
+  StackProps,
+  styled,
+  Typography,
+} from "@mui/material";
 import { useGetRequest } from "./hooks/useGetRequest";
 import { usePostRequest } from "./hooks/usePostRequest";
 import { ScoreRequest, ScoreResponse } from "./models/Request";
 import Footer from "./components/Footer";
 import { v4 as uuid } from "uuid";
-// import parse from "html-react-parser";
+import Hints from "./components/Hints";
+import ObfuscatedText from "./components/ObfuscatedText";
+import WinPanel from "./components/WinPanel";
+import { summarizedGame } from "./utils/text";
+import SearchInput from "./components/SearchInput";
 
+const GET_UPDATE_STATUS_URL = process.env.REACT_APP_GET_UPDATE_STATUS_URL || "";
 const GET_CURRENT_GAME_URL = process.env.REACT_APP_GET_CURRENT_GAME_URL || "";
 const POST_SCORE_FOR_WORD_URL =
   process.env.REACT_APP_POST_SCORE_FOR_WORD_URL || "";
 
 const loadCache = (): WordsDictionary => {
-  const cacheMatchedWords = window.localStorage.getItem("matchedWords") || "{}";
-  const cacheGameID = window.localStorage.getItem("gameID") || "-1";
-  const cacheFoundBy = window.localStorage.getItem("foundBy") || "0";
-  const cacheScoreCount = window.localStorage.getItem("scoreCount") || "0";
-  const cacheFoundScore = window.localStorage.getItem("foundScore") || "-1";
-  const userID = window.localStorage.getItem("userID") || uuid();
-  const foundBy = parseInt(cacheFoundBy);
-  const foundScore = parseInt(cacheFoundScore);
-  const gameID = parseInt(cacheGameID);
-  const scoreCount = parseInt(cacheScoreCount);
-  const allShadowWordsRaw = JSON.parse(cacheMatchedWords);
-  const allShadowWords = Object.entries<ShadowWord>(allShadowWordsRaw).reduce<
-    Record<string, ShadowWord>
-  >((acc, [key, value]) => {
-    acc[key] = new ShadowWord(value);
-    return acc;
-  }, {});
+  try {
+    const cacheMatchedWords =
+      window.localStorage.getItem("matchedWords") || "{}";
+    const cacheResponse = window.localStorage.getItem("response") || "[]";
+    const cacheGameID = window.localStorage.getItem("gameID") || "-1";
+    const cacheFoundBy = window.localStorage.getItem("foundBy") || "0";
+    const cacheScoreCount = window.localStorage.getItem("scoreCount") || "0";
+    const cacheFoundScore = window.localStorage.getItem("foundScore") || "-1";
+    const userID = window.localStorage.getItem("userID") || uuid();
+    const summarizedGame = window.localStorage.getItem("summarizedGame") || "";
+    const foundBy = parseInt(cacheFoundBy);
+    const foundScore = parseInt(cacheFoundScore);
+    const gameID = parseInt(cacheGameID);
+    const scoreCount = parseInt(cacheScoreCount);
+    const allShadowWordsRaw = JSON.parse(cacheMatchedWords);
+    const response = JSON.parse(cacheResponse);
+    const allShadowWords = Object.entries<ShadowWord>(allShadowWordsRaw).reduce<
+      Record<string, ShadowWord>
+    >((acc, [key, value]) => {
+      acc[key] = new ShadowWord(value);
+      return acc;
+    }, {});
 
-  return {
-    userID,
-    gameID,
-    scoreCount,
-    foundScore,
-    currentShadowWords: {},
-    allShadowWords,
-    foundBy,
-  };
+    return {
+      userID,
+      gameID,
+      summarizedGame,
+      response,
+      scoreCount,
+      foundScore,
+      currentShadowWords: {},
+      allShadowWords,
+      foundBy,
+    };
+  } catch (error) {
+    return {
+      userID: uuid(),
+      gameID: -1,
+      summarizedGame: "",
+      response: [],
+      scoreCount: 0,
+      foundScore: -1,
+      currentShadowWords: {},
+      allShadowWords: {},
+      foundBy: 0,
+    };
+  }
 };
+
+const StickyStack = styled(Stack)<StackProps>(({ theme }) => ({
+  [theme.breakpoints.down("lg")]: {
+    minHeight: "100px",
+    backgroundColor: "#789bd3",
+    position: "sticky",
+
+    top: 0,
+
+    width: "100%",
+    zIndex: 1,
+    padding: "10px",
+    boxShadow: "inset 0px 0px 4px black",
+  },
+}));
 
 const App = () => {
   const [title, setTitle] = useState<ShadowWordsCloud>([]);
   const [synopsis, setSynopsis] = useState<ShadowWordsCloud>([]);
+  const [showResponse, setShowResponse] = useState<boolean>(false);
   const [matchedWords, setMatchedWords] = useState<WordsDictionary>(
     loadCache()
   );
-  const [hintsRow, setHintsRow] = useState<React.ReactElement>(<Fragment />);
   const [lastWord, setLastWord] = useState<string>("");
   const [requestedWord, setRequestedWord] = useState<string>("");
-  const [game, gameRequest] = useGetRequest<RedactedGame>(GET_CURRENT_GAME_URL);
+  const [game, gameRequest, isGameLoading] =
+    useGetRequest<RedactedGame>(GET_CURRENT_GAME_URL);
+  const [update, updateRequest] = useGetRequest<RedactedGame>(
+    GET_UPDATE_STATUS_URL
+  );
   const [score, scoreRequest, isScoreLoading] = usePostRequest<
     ScoreRequest,
     ScoreResponse
@@ -78,111 +120,105 @@ const App = () => {
   }, [gameRequest]);
 
   useEffect(() => {
+    const timeout = setInterval(() => {
+      updateRequest();
+    }, 30 * 1000);
+    return () => clearInterval(timeout);
+  }, [updateRequest]);
+
+  useEffect(() => {
+    if (
+      update &&
+      update.gameID &&
+      update.gameID.toLocaleString() !== matchedWords.gameID.toLocaleString()
+    ) {
+      gameRequest();
+    }
+  }, [gameRequest, matchedWords.gameID, update]);
+  useEffect(() => {
     if (game) {
       setTitle(
         game.redactedTitle.map((c) =>
-          c.map((w) => new ShadowWord(w)).map(replaceWords(matchedWords))
+          c
+            .map((w) => new ShadowWord(w))
+            .map(replaceWords(matchedWords.allShadowWords))
         )
       );
       setSynopsis(
         game.redactedSynopsis.map((c) =>
-          c.map((w) => new ShadowWord(w)).map(replaceWords(matchedWords))
+          c
+            .map((w) => new ShadowWord(w))
+            .map(replaceWords(matchedWords.allShadowWords))
         )
       );
       if (game.gameID !== matchedWords.gameID) {
-        setMatchedWords({
-          userID: matchedWords.userID,
+        setMatchedWords((prev) => ({
+          userID: prev.userID,
           scoreCount: 0,
           foundScore: -1,
+          summarizedGame: "",
+          response: [],
           gameID: game.gameID,
           currentShadowWords: {},
           allShadowWords: {},
           foundBy: game.foundBy,
-        });
+        }));
       }
     }
-  }, [game, matchedWords]);
+  }, [game, matchedWords.allShadowWords, matchedWords.gameID]);
 
   useEffect(() => {
     localStorage.setItem(
       "matchedWords",
       JSON.stringify(matchedWords.allShadowWords)
     );
-    localStorage.setItem("gameID", JSON.stringify(matchedWords.gameID));
-    localStorage.setItem("foundBy", JSON.stringify(matchedWords.foundBy));
-    localStorage.setItem("userID", JSON.stringify(matchedWords.userID));
-    localStorage.setItem("scoreCount", JSON.stringify(matchedWords.scoreCount));
-    localStorage.setItem("foundScore", JSON.stringify(matchedWords.foundScore));
+    localStorage.setItem("response", JSON.stringify(matchedWords.response));
+    localStorage.setItem("gameID", matchedWords.gameID.toString());
+    localStorage.setItem("foundBy", matchedWords.foundBy.toString());
+    localStorage.setItem("userID", matchedWords.userID);
+    localStorage.setItem("summarizedGame", matchedWords.summarizedGame);
+    localStorage.setItem("scoreCount", matchedWords.scoreCount.toString());
+    localStorage.setItem("foundScore", matchedWords.foundScore.toString());
   }, [matchedWords]);
 
   const content = useMemo(() => {
-    const latestWordIDs = Object.keys(matchedWords.currentShadowWords);
+    if (isGameLoading) {
+      return (
+        <Stack spacing={1}>
+          <Typography>Loading...</Typography>
+          <LinearProgress />
+        </Stack>
+      );
+    }
+    if (showResponse) {
+      return ObfuscatedText({
+        title,
+        synopsis: matchedWords.response,
+        currentShadowWords: matchedWords.currentShadowWords,
+      });
+    }
 
-    const newTitleContent = title.map((line, row) => {
-      return (
-        <h1 key={`movie-title-${row}`}>
-          <p>
-            {line.map((word, index) => {
-              return (
-                <ShadowWordSpan
-                  key={`child-movie-title-${row}-${index}`}
-                  word={word}
-                  isLastWord={latestWordIDs.some(
-                    (id) => id === word.id.toString()
-                  )}
-                />
-              );
-            })}
-          </p>
-        </h1>
-      );
+    return ObfuscatedText({
+      title,
+      synopsis,
+      currentShadowWords: matchedWords.currentShadowWords,
     });
-    const newSynopsisContent = synopsis.map((line, row) => {
-      return (
-        <p key={`synopsis-${row}`}>
-          {line.map((word, index) => {
-            return (
-              <ShadowWordSpan
-                key={`child-synopsis-${row}-${index}`}
-                word={word}
-                isLastWord={latestWordIDs.some(
-                  (id) => id === word.id.toString()
-                )}
-              />
-            );
-          })}
-        </p>
-      );
-    });
-    return (
-      <Box
-        sx={{
-          margin: "0 auto",
-          width: "90%",
-          alignContent: "center",
-          display: "block",
-          backgroundColor: "white",
-          borderRadius: "5px",
-          boxShadow: "inset 0px 0px 4px black",
-          padding: "5px",
-          overflow: "auto",
-        }}
-      >
-        {newTitleContent}
-        {newSynopsisContent}
-      </Box>
-    );
-  }, [matchedWords.currentShadowWords, synopsis, title]);
-  useEffect(() => {}, []);
+  }, [
+    isGameLoading,
+    matchedWords.currentShadowWords,
+    matchedWords.response,
+    showResponse,
+    synopsis,
+    title,
+  ]);
+
   const submitWord = async () => {
-    // console.log('start submitWord:')
     const trimmedWord = requestedWord.replace(" ", "");
     if (trimmedWord.length > 0) {
       const wordIDs = title
         .reduce((acc, curr) => [...acc, ...curr], [])
         .map((w) => w.id);
       scoreRequest({ word: trimmedWord, wordIDs, userID: matchedWords.userID });
-
       setLastWord(trimmedWord);
       setRequestedWord("");
     }
@@ -200,9 +236,7 @@ const App = () => {
 
   useEffect(() => {
     if (score) {
-      const { score: newScore, foundBy } = score;
-      console.log("foundBy:", foundBy);
-
+      const { score: newScore, foundBy, response = [] } = score;
       setMatchedWords((prev) => {
         const newAllShadowWords = {
           ...prev.allShadowWords,
@@ -222,6 +256,7 @@ const App = () => {
           scoreCount:
             prev.foundScore !== -1 ? prev.scoreCount : prev.scoreCount + 1,
           foundBy,
+          response,
           currentShadowWords: newScore.reduce<Record<number, ShadowWord>>(
             (acc, w) => {
               const existingShadowWord = prev.allShadowWords[w.id];
@@ -244,113 +279,72 @@ const App = () => {
 
   useEffect(() => {
     setTitle((previous) =>
-      previous.map((row) => row.map(replaceWords(matchedWords)))
+      previous.map((row) => row.map(replaceWords(matchedWords.allShadowWords)))
     );
 
     setSynopsis((previous) =>
-      previous.map((row) => row.map(replaceWords(matchedWords)))
+      previous.map((row) => row.map(replaceWords(matchedWords.allShadowWords)))
     );
-  }, [matchedWords]);
+  }, [matchedWords.allShadowWords]);
 
   useEffect(() => {
-    if (!lastWord || isScoreLoading) {
-      return setHintsRow(<Fragment />);
-    }
-    const { newMatchedHints, newNearHints } = countHints(
-      [...title, ...synopsis],
-      matchedWords.currentShadowWords
-    );
-    let fullHintsRow = makeHintsCountText(newMatchedHints, newNearHints);
+    setMatchedWords((prev) => ({
+      ...prev,
+      summarizedGame:
+        prev.foundScore !== -1
+          ? prev.summarizedGame
+          : summarizedGame([...title, ...synopsis]),
+    }));
+  }, [synopsis, title]);
 
-    setHintsRow(
-      <p>
-        <b>{`${lastWord}: ${fullHintsRow}`}</b>
-      </p>
-    );
+  const hintsRow = useMemo(() => {
+    return Hints({
+      text: [...title, ...synopsis],
+      currentShadowWords: matchedWords.currentShadowWords,
+      lastWord,
+      isScoreLoading,
+    });
   }, [matchedWords, lastWord, isScoreLoading, title, synopsis]);
 
-  const makeRedactedMessages = (synopsis: ShadowWordsCloud): JSX.Element => {
-    if (synopsis.length === 0) {
-      return <div>Loading...</div>;
-    }
-    const handleKeyboardEvent = (e: KeyboardEvent<HTMLImageElement>) => {
-      // console.log("key:", e.key);
-      !isScoreLoading && e.key === "Enter" && submitWord();
-    };
-
-    const handleScoreTextfieldChange = (
-      event: React.ChangeEvent<HTMLInputElement>
-    ) => {
-      setRequestedWord(event.target.value);
-    };
-
-    const foundTitle = title.every((row) => {
+  const foundTitle =
+    !isGameLoading &&
+    title.every((row) => {
       return row.every((s) => s.similarity === 1);
     });
+  const winPanel = WinPanel({
+    foundTitle,
+    foundScore: matchedWords.foundScore,
+    scoreCount: matchedWords.scoreCount,
+    summarizedGame: matchedWords.summarizedGame,
+    showFullText: setShowResponse,
+  });
+
+  const searchInput = SearchInput({
+    requestedWord,
+    isLoading: isScoreLoading,
+    submitWord,
+    onTextChange: setRequestedWord,
+  });
+
+  const makeRedactedMessages = (synopsis: ShadowWordsCloud): JSX.Element => {
     return (
       <Stack
-        sx={{
-          // backgroundColor: ,
-          height: "100%",
-        }}
+        minHeight="100vh"
+        height="100%"
         justifyContent="flex-start"
         direction="column"
         alignItems="center"
         spacing={2}
       >
-        <Typography variant="h1">! SYNOPTIX !</Typography>
-
-        <Stack direction="row" spacing={2}>
-          <TextField
-            // inputProps={{ class backgroundColor: 'white' }}
-            sx={{
-              "& .MuiOutlinedInput-root": {
-                backgroundColor: "white",
-                boxShadow: "inset 0px 0px 4px black",
-              },
-            }}
-            label="Saisir un mot/nombre/lettre"
-            id="score-id"
-            value={requestedWord}
-            onChange={handleScoreTextfieldChange}
-            onKeyUp={handleKeyboardEvent}
-          />
-          <LoadingButton
-            loading={isScoreLoading}
-            variant="contained"
-            onClick={submitWord}
-          >
-            Chercher
-          </LoadingButton>
-        </Stack>
-        <Collapse in={foundTitle} timeout={800} unmountOnExit={true}>
-          <Box
-            sx={{
-              backgroundColor: "lime",
-              padding: 1,
-              borderRadius: "5px",
-            }}
-          >
-            <h1>BRAVO</h1>
-            <p>
-              <span>vous êtes </span>
-              <b>
-                {matchedWords.foundScore}
-                <sup>e</sup>
-              </b>
-              <span> à avoir trouvé le film, en </span>
-              <b>{`${matchedWords.scoreCount} coup${
-                matchedWords.scoreCount > 1 ? "s" : ""
-              }`}</b>
-            </p>
-          </Box>
-        </Collapse>
-        {hintsRow}
+        <Typography variant="h2">! SYNOPTIX !</Typography>
+        <StickyStack direction="column" spacing={2}>
+          {searchInput}
+          {hintsRow}
+          {winPanel}
+        </StickyStack>
         {content}
-        {/* <Stack direction="row" spacing="auto"> */}
         <Footer />
       </Stack>
-      // </Stack>
     );
   };
   return (
