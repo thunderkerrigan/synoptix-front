@@ -310,6 +310,7 @@ const App = () => {
 
   const foundTitle =
     !isGameLoading &&
+    title.length > 0 &&
     title.every((row) => {
       return row.every((s) => s.similarity === 1);
     });
