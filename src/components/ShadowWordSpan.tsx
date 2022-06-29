@@ -18,7 +18,7 @@ export const ShadowWordSpan = ({
   const isSimilar = word.similarity === 1;
   const isLastWordSimilar = isSimilar && isLastWord;
   const style: React.CSSProperties = {
-    fontFamily: "arial",
+    fontFamily: "monospace",
     borderRadius: "3px",
     backgroundColor: isLastWordSimilar
       ? "lime"
