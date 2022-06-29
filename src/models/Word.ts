@@ -41,6 +41,12 @@ export interface RedactedGame {
   redactedSynopsis: ShadowWordsCloud;
 }
 
+export interface LastWord {
+  index: number;
+  label: string;
+  count: number;
+}
+
 export interface WordsDictionary {
   userID: string;
   gameID: number;
@@ -51,6 +57,7 @@ export interface WordsDictionary {
   currentShadowWords: Record<string, ShadowWord>;
   allShadowWords: Record<string, ShadowWord>;
   foundBy: number;
+  lastWords: LastWord[];
 }
 
 export const replaceWords =

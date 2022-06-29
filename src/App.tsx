@@ -23,7 +23,7 @@ import { v4 as uuid } from "uuid";
 import Hints from "./components/Hints";
 import ObfuscatedText from "./components/ObfuscatedText";
 import WinPanel from "./components/WinPanel";
-import { summarizedGame } from "./utils/text";
+import { countHints, summarizedGame } from "./utils/text";
 import SearchInput from "./components/SearchInput";
 
 const GET_UPDATE_STATUS_URL = process.env.REACT_APP_GET_UPDATE_STATUS_URL || "";
@@ -36,6 +36,7 @@ const loadCache = (): WordsDictionary => {
     const cacheMatchedWords =
       window.localStorage.getItem("matchedWords") || "{}";
     const cacheResponse = window.localStorage.getItem("response") || "[]";
+    const cacheLastWords = window.localStorage.getItem("lastWords") || null;
     const cacheGameID = window.localStorage.getItem("gameID") || "-1";
     const cacheFoundBy = window.localStorage.getItem("foundBy") || "0";
     const cacheScoreCount = window.localStorage.getItem("scoreCount") || "0";
@@ -48,13 +49,16 @@ const loadCache = (): WordsDictionary => {
     const scoreCount = parseInt(cacheScoreCount);
     const allShadowWordsRaw = JSON.parse(cacheMatchedWords);
     const response = JSON.parse(cacheResponse);
+    if (cacheLastWords == null) {
+      throw new Error("invalidate cache");
+    }
+    const lastWords = JSON.parse(cacheLastWords);
     const allShadowWords = Object.entries<ShadowWord>(allShadowWordsRaw).reduce<
       Record<string, ShadowWord>
     >((acc, [key, value]) => {
       acc[key] = new ShadowWord(value);
       return acc;
     }, {});
-
     return {
       userID,
       gameID,
@@ -65,6 +69,7 @@ const loadCache = (): WordsDictionary => {
       currentShadowWords: {},
       allShadowWords,
       foundBy,
+      lastWords,
     };
   } catch (error) {
     return {
@@ -77,11 +82,13 @@ const loadCache = (): WordsDictionary => {
       currentShadowWords: {},
       allShadowWords: {},
       foundBy: 0,
+      lastWords: [],
     };
   }
 };
 
 const StickyStack = styled(Stack)<StackProps>(({ theme }) => ({
+  width: "360px",
   [theme.breakpoints.down("lg")]: {
     minHeight: "100px",
     backgroundColor: "#789bd3",
@@ -162,6 +169,7 @@ const App = () => {
           currentShadowWords: {},
           allShadowWords: {},
           foundBy: game.foundBy,
+          lastWords: [],
         }));
       }
     }
@@ -173,6 +181,7 @@ const App = () => {
       JSON.stringify(matchedWords.allShadowWords)
     );
     localStorage.setItem("response", JSON.stringify(matchedWords.response));
+    localStorage.setItem("lastWords", JSON.stringify(matchedWords.lastWords));
     localStorage.setItem("gameID", matchedWords.gameID.toString());
     localStorage.setItem("foundBy", matchedWords.foundBy.toString());
     localStorage.setItem("userID", matchedWords.userID);
@@ -277,7 +286,7 @@ const App = () => {
         };
       });
     }
-  }, [score]);
+  }, [lastWord, score]);
 
   useEffect(() => {
     setTitle((previous) =>
@@ -306,7 +315,39 @@ const App = () => {
       lastWord,
       isScoreLoading,
     });
-  }, [matchedWords, lastWord, isScoreLoading, title, synopsis]);
+  }, [
+    matchedWords.currentShadowWords,
+    lastWord,
+    isScoreLoading,
+    title,
+    synopsis,
+  ]);
+
+  useEffect(() => {
+    setMatchedWords((prev) => {
+      if (lastWord === "" || prev.lastWords.find((w) => w.label === lastWord)) {
+        return prev;
+      }
+      const { newMatchedHints, newNearHints } = countHints(
+        [...title, ...synopsis],
+        matchedWords.currentShadowWords
+      );
+      const count = newMatchedHints.length + newNearHints.length;
+      return {
+        ...prev,
+        lastWords: [
+          ...prev.lastWords,
+          { index: prev.lastWords.length + 1, label: lastWord, count },
+        ],
+      };
+    });
+  }, [
+    matchedWords.currentShadowWords,
+    lastWord,
+    isScoreLoading,
+    title,
+    synopsis,
+  ]);
 
   const foundTitle =
     !isGameLoading &&
@@ -327,6 +368,7 @@ const App = () => {
     isLoading: isScoreLoading,
     submitWord,
     onTextChange: setRequestedWord,
+    lastScoredWords: matchedWords.lastWords,
   });
 
   const makeRedactedMessages = (synopsis: ShadowWordsCloud): JSX.Element => {
