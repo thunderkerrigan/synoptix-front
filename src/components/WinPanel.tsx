@@ -46,10 +46,20 @@ const WinPanel = (props: WinPanelProps) => {
     scoreCount > 1 ? "s" : ""
   }!\n${summarizedGame}\nhttps://synoptix.thunderkerrigan.fr`;
   return (
-    <Collapse in={foundTitle} timeout={800} unmountOnExit={true}>
-      {/* <Paper elevation={3} sx={{}}> */}
+    <Collapse
+      sx={{
+        margin: "auto",
+        maxWidth: "360px",
+      }}
+      in={foundTitle}
+      timeout={800}
+      unmountOnExit={true}
+    >
       <Accordion
-        sx={{ backgroundColor: "#007308", color: "white" }}
+        sx={{
+          backgroundColor: "#007308",
+          color: "white",
+        }}
         expanded={isExpanded}
         onChange={() => setExpanded((prev) => !prev)}
       >
@@ -113,7 +123,6 @@ const WinPanel = (props: WinPanelProps) => {
           </Stack>
         </AccordionDetails>
       </Accordion>
-      {/* </Paper> */}
     </Collapse>
   );
 };

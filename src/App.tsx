@@ -9,9 +9,10 @@ import {
 } from "./models/Word";
 import {
   Box,
+  Grid,
+  GridProps,
   LinearProgress,
   Stack,
-  StackProps,
   styled,
   Typography,
 } from "@mui/material";
@@ -87,15 +88,13 @@ const loadCache = (): WordsDictionary => {
   }
 };
 
-const StickyStack = styled(Stack)<StackProps>(({ theme }) => ({
-  width: "360px",
+const StickyGrid = styled(Grid)<GridProps>(({ theme }) => ({
+  width: "1000px",
   [theme.breakpoints.down("lg")]: {
     minHeight: "100px",
     backgroundColor: "#789bd3",
     position: "sticky",
-
     top: 0,
-
     width: "100%",
     zIndex: 1,
     padding: "10px",
@@ -374,6 +373,7 @@ const App = () => {
   const makeRedactedMessages = (synopsis: ShadowWordsCloud): JSX.Element => {
     return (
       <Stack
+        margin="auto"
         minHeight="100vh"
         height="100%"
         justifyContent="flex-start"
@@ -382,11 +382,23 @@ const App = () => {
         spacing={2}
       >
         <Typography variant="h2">! SYNOPTIX !</Typography>
-        <StickyStack direction="column" spacing={2}>
-          {searchInput}
-          {hintsRow}
-          {winPanel}
-        </StickyStack>
+        <StickyGrid
+          container
+          justifyContent="center"
+          alignItems="flex-start"
+          rowSpacing={2}
+          columnSpacing={1}
+        >
+          <Grid item xs={12} sm={6} md={4}>
+            {searchInput}
+          </Grid>
+          <Grid item xs={12} sm={6} md={4}>
+            {hintsRow}
+          </Grid>
+          <Grid item xs={12} md={4}>
+            {winPanel}
+          </Grid>
+        </StickyGrid>
         {content}
         <Footer />
       </Stack>
