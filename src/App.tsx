@@ -40,14 +40,12 @@ const loadCache = (): WordsDictionary => {
     const cacheLastWords = window.localStorage.getItem("lastWords") || null;
     const cacheGameID = window.localStorage.getItem("gameID") || "-1";
     const cacheFoundBy = window.localStorage.getItem("foundBy") || "0";
-    const cacheScoreCount = window.localStorage.getItem("scoreCount") || "0";
     const cacheFoundScore = window.localStorage.getItem("foundScore") || "-1";
     const userID = window.localStorage.getItem("userID") || uuid();
     const summarizedGame = window.localStorage.getItem("summarizedGame") || "";
     const foundBy = parseInt(cacheFoundBy);
     const foundScore = parseInt(cacheFoundScore);
     const gameID = parseInt(cacheGameID);
-    const scoreCount = parseInt(cacheScoreCount);
     const allShadowWordsRaw = JSON.parse(cacheMatchedWords);
     const response = JSON.parse(cacheResponse);
     if (cacheLastWords == null) {
@@ -65,7 +63,6 @@ const loadCache = (): WordsDictionary => {
       gameID,
       summarizedGame,
       response,
-      scoreCount,
       foundScore,
       currentShadowWords: {},
       allShadowWords,
@@ -78,7 +75,6 @@ const loadCache = (): WordsDictionary => {
       gameID: -1,
       summarizedGame: "",
       response: [],
-      scoreCount: 0,
       foundScore: -1,
       currentShadowWords: {},
       allShadowWords: {},
@@ -160,7 +156,6 @@ const App = () => {
       if (game.gameID !== matchedWords.gameID) {
         setMatchedWords((prev) => ({
           userID: prev.userID,
-          scoreCount: 0,
           foundScore: -1,
           summarizedGame: "",
           response: [],
@@ -185,7 +180,6 @@ const App = () => {
     localStorage.setItem("foundBy", matchedWords.foundBy.toString());
     localStorage.setItem("userID", matchedWords.userID);
     localStorage.setItem("summarizedGame", matchedWords.summarizedGame);
-    localStorage.setItem("scoreCount", matchedWords.scoreCount.toString());
     localStorage.setItem("foundScore", matchedWords.foundScore.toString());
   }, [matchedWords]);
 
@@ -263,8 +257,6 @@ const App = () => {
 
         return {
           ...prev,
-          scoreCount:
-            prev.foundScore !== -1 ? prev.scoreCount : prev.scoreCount + 1,
           foundBy,
           response,
           currentShadowWords: newScore.reduce<Record<number, ShadowWord>>(
@@ -357,7 +349,7 @@ const App = () => {
   const winPanel = WinPanel({
     foundTitle,
     foundScore: matchedWords.foundScore,
-    scoreCount: matchedWords.scoreCount,
+    scoreCount: matchedWords.lastWords.length,
     summarizedGame: matchedWords.summarizedGame,
     showFullText: setShowResponse,
   });

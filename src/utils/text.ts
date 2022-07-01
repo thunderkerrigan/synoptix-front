@@ -59,9 +59,9 @@ export const summarizedGame = (wordClouds: ShadowWordsCloud): string => {
     });
   });
   let summary = "";
-  const matchedPerTen = Math.round((newMatchedHints / wordCount) * 10);
+  const matchedPerTen = Math.ceil((newMatchedHints / wordCount) * 10);
 
-  const nearMatchedTen = Math.round((newNearHints / wordCount) * 10);
+  const nearMatchedTen = Math.ceil((newNearHints / wordCount) * 10);
   const notMatchedTen = 10 - matchedPerTen - nearMatchedTen;
   for (let i = 0; i < notMatchedTen; i++) {
     summary += "🟥";

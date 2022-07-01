@@ -51,7 +51,6 @@ export interface WordsDictionary {
   userID: string;
   gameID: number;
   foundScore: number;
-  scoreCount: number;
   response: ShadowWordsCloud;
   summarizedGame: string;
   currentShadowWords: Record<string, ShadowWord>;
