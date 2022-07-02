@@ -5,6 +5,7 @@ import {
   Button,
   Checkbox,
   Collapse,
+  Divider,
   keyframes,
   Stack,
   Typography,
@@ -12,6 +13,7 @@ import {
 import React, { useState } from "react";
 import { CopyToClipboard } from "react-copy-to-clipboard";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { Share as ShareIcon } from "@mui/icons-material";
 
 interface WinPanelProps {
   foundTitle: boolean;
@@ -83,6 +85,8 @@ const WinPanel = (props: WinPanelProps) => {
           </Typography>
         </AccordionSummary>
         <AccordionDetails>
+          <Divider />
+
           <p>
             <span>vous êtes </span>
             <b>
@@ -102,6 +106,7 @@ const WinPanel = (props: WinPanelProps) => {
             <Checkbox checked={showFullTextChecked} onChange={handleShowText} />
             <span>Afficher le synopsis</span>
           </Stack>
+          <Divider variant="middle" />
           <Stack
             direction="row"
             justifyContent="flex-start"
@@ -115,6 +120,8 @@ const WinPanel = (props: WinPanelProps) => {
               <Button
                 sx={{ color: "inherit", fontWeight: "bold" }}
                 color="primary"
+                // variant="outlined"
+                startIcon={<ShareIcon />}
               >
                 partager
               </Button>
