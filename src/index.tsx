@@ -9,15 +9,24 @@ import "@fontsource/roboto/400.css";
 import "@fontsource/roboto/500.css";
 import "@fontsource/roboto/700.css";
 import { Box } from "@mui/system";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+import Admin from "./Admin";
+import Login from "./Login";
 
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
 );
 root.render(
   <React.StrictMode>
-    <Box minHeight='100vh' bgcolor="#789bd3">
+    <Box minHeight="100vh" bgcolor="#789bd3">
       <CssBaseline />
-      <App />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<App />} />
+          <Route path="/admin" element={<Admin />} />
+          <Route path="/login" element={<Login />} />
+        </Routes>
+      </BrowserRouter>
     </Box>
   </React.StrictMode>
 );
