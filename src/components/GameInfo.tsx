@@ -28,17 +28,19 @@ const GameInfo = () => {
         >{`jour ${gameID}`}</Typography>
         <Typography variant="subtitle2">{foundByText}</Typography>
         <SynoptixProgressBar />
-        <Box>
-          <Typography variant="subtitle1">{`le film d'hier était:`}</Typography>
-          <Typography
-            sx={{
-              color: green[900],
-              fontWeight: "bold",
-              textDecorationLine: "underline",
-            }}
-            variant="subtitle2"
-          >{`${lastMovie}.`}</Typography>
-        </Box>
+        {lastMovie !== "" && (
+          <Box>
+            <Typography variant="subtitle1">{`le film d'hier était:`}</Typography>
+            <Typography
+              sx={{
+                color: green[900],
+                fontWeight: "bold",
+                textDecorationLine: "underline",
+              }}
+              variant="subtitle2"
+            >{`${lastMovie}.`}</Typography>
+          </Box>
+        )}
       </Stack>
     </Box>
   );

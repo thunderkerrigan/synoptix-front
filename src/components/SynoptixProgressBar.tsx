@@ -24,9 +24,11 @@ const SynoptixProgressBar = () => {
   return (
     <Box sx={{ width: "100%" }}>
       <SummaryProgress variant="buffer" value={progress} valueBuffer={buffer} />
-      <Typography variant="body2" color="text.secondary">{`${Math.round(
-        progress
-      )}%`}</Typography>
+      {summary.total > 0 && (
+        <Typography variant="body2" color="text.secondary">{`${Math.round(
+          progress
+        )}%`}</Typography>
+      )}
     </Box>
   );
 };

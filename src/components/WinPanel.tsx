@@ -34,7 +34,7 @@ const rainbowKeyFrames = keyframes`
 `;
 const WinPanel = (props: WinPanelProps) => {
   const { foundTitle, showFullText } = props;
-  const { foundScore, summarizedGame, lastWords } = useAppSelector(
+  const { foundScore, summarizedGame, lastWords, gameID } = useAppSelector(
     (state) => state.game
   );
   const scoreCount = lastWords.length;
@@ -45,7 +45,7 @@ const WinPanel = (props: WinPanelProps) => {
     setShowFullTextChecked(() => !showFullTextChecked);
     showFullText(!showFullTextChecked);
   };
-  const sharingText = `J'ai trouvé le #Synoptix du jour en ${scoreCount} coup${
+  const sharingText = `J'ai trouvé le #Synoptix n°${gameID} en ${scoreCount} coup${
     scoreCount > 1 ? "s" : ""
   }!\n${summarizedGame}\nhttps://synoptix.thunderkerrigan.fr`;
   return (
