@@ -14,12 +14,10 @@ import React, { useState } from "react";
 import { CopyToClipboard } from "react-copy-to-clipboard";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Share as ShareIcon } from "@mui/icons-material";
+import { useAppSelector } from "../hooks/useRedux";
 
 interface WinPanelProps {
   foundTitle: boolean;
-  foundScore: number;
-  scoreCount: number;
-  summarizedGame: string;
   showFullText: (show: boolean) => void;
 }
 
@@ -35,8 +33,11 @@ const rainbowKeyFrames = keyframes`
 }
 `;
 const WinPanel = (props: WinPanelProps) => {
-  const { foundScore, scoreCount, foundTitle, showFullText, summarizedGame } =
-    props;
+  const { foundTitle, showFullText } = props;
+  const { foundScore, summarizedGame, lastWords } = useAppSelector(
+    (state) => state.game
+  );
+  const scoreCount = lastWords.length;
   const [showFullTextChecked, setShowFullTextChecked] = useState(false);
   const [isExpanded, setExpanded] = useState(true);
   const [isCopied, setIsCopied] = useState(false);

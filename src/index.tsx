@@ -12,6 +12,8 @@ import { Box } from "@mui/system";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import Admin from "./Admin";
 import Login from "./Login";
+import { Provider } from "react-redux";
+import { store } from "./redux/store";
 
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
@@ -20,13 +22,15 @@ root.render(
   <React.StrictMode>
     <Box minHeight="100vh" bgcolor="#789bd3">
       <CssBaseline />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<App />} />
-          <Route path="/admin" element={<Admin />} />
-          <Route path="/login" element={<Login />} />
-        </Routes>
-      </BrowserRouter>
+      <Provider store={store}>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<App />} />
+            <Route path="/admin" element={<Admin />} />
+            <Route path="/login" element={<Login />} />
+          </Routes>
+        </BrowserRouter>
+      </Provider>
     </Box>
   </React.StrictMode>
 );

@@ -1,10 +1,10 @@
 import { amber, grey, lightGreen } from "@mui/material/colors";
 import React from "react";
-import { ShadowWord } from "../models/Word";
+import { ShadowWordInterface } from "../models/Word";
 import { tint } from "../utils/color";
 
 interface ShadowWordProps extends React.ComponentProps<"span"> {
-  word: ShadowWord;
+  word: ShadowWordInterface;
   isLastWord: boolean;
 }
 
@@ -20,7 +20,8 @@ export const ShadowWordSpan = ({
   const isSimilar = word.similarity === 1;
   const isLastWordSimilar = isSimilar && isLastWord;
   const style: React.CSSProperties = {
-    fontFamily: "monospace",
+    fontFamily: "roboto, monaco, Lucida Console,consolas, monospace",
+    fontWeight: "",
     borderRadius: "3px",
     backgroundColor: isLastWordSimilar
       ? lightGreen["A400"]
@@ -34,12 +35,12 @@ export const ShadowWordSpan = ({
       : tint(grey, 1.5 - word.similarity),
     // width: `${word.shadowWord.length * 10}px`,
     whiteSpace: "pre",
-    padding: isSimilar && !isLastWordSimilar ? "0" : "0 3px",
+    padding: isSimilar && !isLastWordSimilar ? "0" : "2px 5px",
     // margin: isSimilar ? "inherit" : "0 1px",
     display: "inline-block",
     textAlign: "center",
-    fontSize: "1.2em",
-    lineHeight: "1.2",
+    fontSize: "1em",
+    lineHeight: "1",
     // height: "20px",
     transitionProperty: "background-color, color",
     transitionDuration: ".5s",

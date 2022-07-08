@@ -1,12 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import "./App.css";
-import {
-  RedactedGame,
-  replaceWords,
-  ShadowWord,
-  ShadowWordsCloud,
-  WordsDictionary,
-} from "./models/Word";
+import { RedactedGame, replaceWords, ShadowWordsCloud } from "./models/Word";
 import {
   Box,
   Grid,
@@ -20,72 +13,28 @@ import { useGetRequest } from "./hooks/useGetRequest";
 import { usePostRequest } from "./hooks/usePostRequest";
 import { ScoreRequest, ScoreResponse } from "./models/Request";
 import Footer from "./components/Footer";
-import { v4 as uuid } from "uuid";
 import Hints from "./components/Hints";
 import ObfuscatedText from "./components/ObfuscatedText";
 import WinPanel from "./components/WinPanel";
-import { countHints, summarizedGame } from "./utils/text";
+import { makeSummary, summarizedGame } from "./utils/text";
 import SearchInput from "./components/SearchInput";
+import { useAppDispatch, useAppSelector } from "./hooks/useRedux";
+import { updateGame, updateShadowWord, winGame } from "./redux/gameSlice";
+import GameInfo from "./components/GameInfo";
 
 const GET_UPDATE_STATUS_URL = process.env.REACT_APP_GET_UPDATE_STATUS_URL || "";
 const GET_CURRENT_GAME_URL = process.env.REACT_APP_GET_CURRENT_GAME_URL || "";
 const POST_SCORE_FOR_WORD_URL =
   process.env.REACT_APP_POST_SCORE_FOR_WORD_URL || "";
 
-const loadCache = (): WordsDictionary => {
-  try {
-    const cacheMatchedWords =
-      window.localStorage.getItem("matchedWords") || "{}";
-    const cacheResponse = window.localStorage.getItem("response") || "[]";
-    const cacheLastWords = window.localStorage.getItem("lastWords") || null;
-    const cacheGameID = window.localStorage.getItem("gameID") || "-1";
-    const cacheFoundBy = window.localStorage.getItem("foundBy") || "0";
-    const cacheFoundScore = window.localStorage.getItem("foundScore") || "-1";
-    const userID = window.localStorage.getItem("userID") || uuid();
-    const summarizedGame = window.localStorage.getItem("summarizedGame") || "";
-    const foundBy = parseInt(cacheFoundBy);
-    const foundScore = parseInt(cacheFoundScore);
-    const gameID = parseInt(cacheGameID);
-    const allShadowWordsRaw = JSON.parse(cacheMatchedWords);
-    const response = JSON.parse(cacheResponse);
-    if (cacheLastWords == null) {
-      throw new Error("invalidate cache");
-    }
-    const lastWords = JSON.parse(cacheLastWords);
-    const allShadowWords = Object.entries<ShadowWord>(allShadowWordsRaw).reduce<
-      Record<string, ShadowWord>
-    >((acc, [key, value]) => {
-      acc[key] = new ShadowWord(value);
-      return acc;
-    }, {});
-    return {
-      userID,
-      gameID,
-      summarizedGame,
-      response,
-      foundScore,
-      currentShadowWords: {},
-      allShadowWords,
-      foundBy,
-      lastWords,
-    };
-  } catch (error) {
-    return {
-      userID: uuid(),
-      gameID: -1,
-      summarizedGame: "",
-      response: [],
-      foundScore: -1,
-      currentShadowWords: {},
-      allShadowWords: {},
-      foundBy: 0,
-      lastWords: [],
-    };
+const loadCache = (): void => {
+  if (window.localStorage.getItem("gameID") !== null) {
+    window.localStorage.clear();
   }
 };
 
 const StickyGrid = styled(Grid)<GridProps>(({ theme }) => ({
-  width: "1000px",
+  width: "800px",
   [theme.breakpoints.down("lg")]: {
     minHeight: "100px",
     backgroundColor: "#789bd3",
@@ -99,14 +48,18 @@ const StickyGrid = styled(Grid)<GridProps>(({ theme }) => ({
 }));
 
 const App = () => {
+  const {
+    gameID,
+    allShadowWords,
+    response,
+    currentShadowWords,
+    foundScore,
+    userID,
+  } = useAppSelector((state) => state.game);
+  const dispatch = useAppDispatch();
   const [title, setTitle] = useState<ShadowWordsCloud>([]);
   const [synopsis, setSynopsis] = useState<ShadowWordsCloud>([]);
   const [showResponse, setShowResponse] = useState<boolean>(false);
-  const [matchedWords, setMatchedWords] = useState<WordsDictionary>(
-    loadCache()
-  );
-  const [lastWord, setLastWord] = useState<string>("");
-  const [requestedWord, setRequestedWord] = useState<string>("");
   const [game, gameRequest, isGameLoading] =
     useGetRequest<RedactedGame>(GET_CURRENT_GAME_URL);
   const [update, updateRequest] = useGetRequest<RedactedGame>(
@@ -116,6 +69,11 @@ const App = () => {
     ScoreRequest,
     ScoreResponse
   >(POST_SCORE_FOR_WORD_URL);
+  const fullText = useMemo(() => [...title, ...synopsis], [title, synopsis]);
+
+  useEffect(() => {
+    loadCache();
+  }, []);
 
   useEffect(() => {
     gameRequest();
@@ -132,56 +90,37 @@ const App = () => {
     if (
       update &&
       update.gameID &&
-      update.gameID.toLocaleString() !== matchedWords.gameID.toLocaleString()
+      update.gameID.toLocaleString() !== gameID.toLocaleString()
     ) {
       gameRequest();
     }
-  }, [gameRequest, matchedWords.gameID, update]);
+  }, [gameRequest, gameID, update]);
+
   useEffect(() => {
     if (game) {
       setTitle(
-        game.redactedTitle.map((c) =>
-          c
-            .map((w) => new ShadowWord(w))
-            .map(replaceWords(matchedWords.allShadowWords))
-        )
+        game.redactedTitle.map((c) => c.map(replaceWords(allShadowWords)))
       );
       setSynopsis(
-        game.redactedSynopsis.map((c) =>
-          c
-            .map((w) => new ShadowWord(w))
-            .map(replaceWords(matchedWords.allShadowWords))
-        )
+        game.redactedSynopsis.map((c) => c.map(replaceWords(allShadowWords)))
       );
-      if (game.gameID !== matchedWords.gameID) {
-        setMatchedWords((prev) => ({
-          userID: prev.userID,
-          foundScore: -1,
-          summarizedGame: "",
-          response: [],
-          gameID: game.gameID,
-          currentShadowWords: {},
-          allShadowWords: {},
-          foundBy: game.foundBy,
-          lastWords: [],
-        }));
+      if (game.gameID !== gameID) {
+        dispatch(
+          updateGame({
+            foundScore: -1,
+            summarizedGame: "",
+            response: [],
+            lastMovie: game.lastMovie,
+            gameID: game.gameID,
+            currentShadowWords: {},
+            allShadowWords: {},
+            foundBy: game.foundBy,
+            lastWords: [],
+          })
+        );
       }
     }
-  }, [game, matchedWords.allShadowWords, matchedWords.gameID]);
-
-  useEffect(() => {
-    localStorage.setItem(
-      "matchedWords",
-      JSON.stringify(matchedWords.allShadowWords)
-    );
-    localStorage.setItem("response", JSON.stringify(matchedWords.response));
-    localStorage.setItem("lastWords", JSON.stringify(matchedWords.lastWords));
-    localStorage.setItem("gameID", matchedWords.gameID.toString());
-    localStorage.setItem("foundBy", matchedWords.foundBy.toString());
-    localStorage.setItem("userID", matchedWords.userID);
-    localStorage.setItem("summarizedGame", matchedWords.summarizedGame);
-    localStorage.setItem("foundScore", matchedWords.foundScore.toString());
-  }, [matchedWords]);
+  }, [game, allShadowWords, gameID, dispatch]);
 
   const content = useMemo(() => {
     if (isGameLoading) {
@@ -195,150 +134,78 @@ const App = () => {
     if (showResponse) {
       return ObfuscatedText({
         title,
-        synopsis: matchedWords.response,
-        currentShadowWords: matchedWords.currentShadowWords,
+        synopsis: response,
+        currentShadowWords: currentShadowWords,
       });
     }
 
     return ObfuscatedText({
       title,
       synopsis,
-      currentShadowWords: matchedWords.currentShadowWords,
+      currentShadowWords: currentShadowWords,
     });
   }, [
+    currentShadowWords,
     isGameLoading,
-    matchedWords.currentShadowWords,
-    matchedWords.response,
+    response,
     showResponse,
     synopsis,
     title,
   ]);
 
-  const submitWord = async () => {
-    const trimmedWord = requestedWord.replace(" ", "");
-    if (trimmedWord.length > 0) {
-      const wordIDs = title
-        .reduce((acc, curr) => [...acc, ...curr], [])
-        .filter((w) => w.similarity === 1)
-        .map((w) => w.id);
-      scoreRequest({ word: trimmedWord, wordIDs, userID: matchedWords.userID });
-      setLastWord(trimmedWord);
-      setRequestedWord("");
-    }
-  };
   useEffect(() => {
     if (
-      matchedWords.foundScore === -1 &&
+      foundScore === -1 &&
       title.length > 0 &&
       title.every((row) => {
         return row.every((s) => s.similarity === 1);
       })
     ) {
-      setMatchedWords((prev) => ({ ...prev, foundScore: prev.foundBy }));
+      dispatch(winGame());
     }
-  }, [matchedWords.foundScore, title]);
+  }, [foundScore, dispatch, title]);
 
   useEffect(() => {
     if (score) {
       const { score: newScore, foundBy, response = [] } = score;
-      setMatchedWords((prev) => {
-        const newAllShadowWords = {
-          ...prev.allShadowWords,
-          ...newScore
-            .filter((w) => {
-              const foundPrevious = prev.allShadowWords[w.id];
-              return !foundPrevious || foundPrevious.similarity < w.similarity;
-            })
-            .reduce<Record<number, ShadowWord>>((acc, w) => {
-              acc[w.id] = new ShadowWord(w);
-              return acc;
-            }, {}),
-        };
 
-        return {
-          ...prev,
+      dispatch(
+        updateGame({
           foundBy,
           response,
-          currentShadowWords: newScore.reduce<Record<number, ShadowWord>>(
-            (acc, w) => {
-              const existingShadowWord = prev.allShadowWords[w.id];
-              if (
-                w.similarity === 1 ||
-                !existingShadowWord ||
-                existingShadowWord.similarity < w.similarity
-              ) {
-                acc[w.id] = new ShadowWord(w);
-              }
-              return acc;
-            },
-            {}
-          ),
-          allShadowWords: newAllShadowWords,
-        };
-      });
+        })
+      );
+      dispatch(updateShadowWord(newScore));
     }
-  }, [lastWord, score]);
+  }, [dispatch, score]);
 
   useEffect(() => {
     setTitle((previous) =>
-      previous.map((row) => row.map(replaceWords(matchedWords.allShadowWords)))
+      previous.map((row) => row.map(replaceWords(allShadowWords)))
     );
 
     setSynopsis((previous) =>
-      previous.map((row) => row.map(replaceWords(matchedWords.allShadowWords)))
+      previous.map((row) => row.map(replaceWords(allShadowWords)))
     );
-  }, [matchedWords.allShadowWords]);
+  }, [allShadowWords]);
 
   useEffect(() => {
-    setMatchedWords((prev) => ({
-      ...prev,
-      summarizedGame:
-        prev.foundScore !== -1
-          ? prev.summarizedGame
-          : summarizedGame([...title, ...synopsis]),
-    }));
-  }, [synopsis, title]);
-
-  const hintsRow = useMemo(() => {
-    return Hints({
-      text: [...title, ...synopsis],
-      currentShadowWords: matchedWords.currentShadowWords,
-      lastWord,
-      isScoreLoading,
-    });
-  }, [
-    matchedWords.currentShadowWords,
-    lastWord,
-    isScoreLoading,
-    title,
-    synopsis,
-  ]);
-
-  useEffect(() => {
-    setMatchedWords((prev) => {
-      if (lastWord === "" || prev.lastWords.find((w) => w.label === lastWord)) {
-        return prev;
-      }
-      const { newMatchedHints, newNearHints } = countHints(
-        [...title, ...synopsis],
-        matchedWords.currentShadowWords
+    console.log("summarizedGame");
+    if (foundScore === -1) {
+      console.log("summarizedGame SUCCESS");
+      dispatch(
+        updateGame({
+          summarizedGame: summarizedGame(fullText),
+          summary: makeSummary(fullText),
+        })
       );
-      const count = newMatchedHints.length + newNearHints.length;
-      return {
-        ...prev,
-        lastWords: [
-          ...prev.lastWords,
-          { index: prev.lastWords.length + 1, label: lastWord, count },
-        ],
-      };
-    });
-  }, [
-    matchedWords.currentShadowWords,
-    lastWord,
+    }
+  }, [dispatch, foundScore, fullText]);
+
+  const hintsRow = Hints({
+    text: fullText,
     isScoreLoading,
-    title,
-    synopsis,
-  ]);
+  });
 
   const foundTitle =
     !isGameLoading &&
@@ -348,22 +215,27 @@ const App = () => {
     });
   const winPanel = WinPanel({
     foundTitle,
-    foundScore: matchedWords.foundScore,
-    scoreCount: matchedWords.lastWords.length,
-    summarizedGame: matchedWords.summarizedGame,
     showFullText: setShowResponse,
   });
 
+  const submitWord = async (requestedWord: string) => {
+    const trimmedWord = requestedWord.replace(" ", "");
+    if (trimmedWord.length > 0) {
+      const wordIDs = title
+        .reduce((acc, curr) => [...acc, ...curr], [])
+        .filter((w) => w.similarity === 1)
+        .map((w) => w.id);
+      await scoreRequest({ word: trimmedWord, wordIDs, userID });
+      dispatch(updateGame({ lastWord: trimmedWord }));
+    }
+  };
   const searchInput = SearchInput({
-    requestedWord,
     isLoading: isScoreLoading,
     submitWord,
-    onTextChange: setRequestedWord,
-    lastScoredWords: matchedWords.lastWords,
   });
 
-  const makeRedactedMessages = (synopsis: ShadowWordsCloud): JSX.Element => {
-    return (
+  return (
+    <Box lineHeight="1.5" width="100%">
       <Stack
         margin="auto"
         minHeight="100vh"
@@ -374,6 +246,9 @@ const App = () => {
         spacing={2}
       >
         <Typography variant="h2">! SYNOPTIX !</Typography>
+        <Box sx={{ display: { xs: "block", sm: "none" } }}>
+          <GameInfo />
+        </Box>
         <StickyGrid
           container
           justifyContent="center"
@@ -381,24 +256,22 @@ const App = () => {
           rowSpacing={2}
           columnSpacing={1}
         >
-          <Grid item xs={12} sm={6} md={4}>
+          <Grid item sx={{ display: { xs: "none", sm: "block" } }} xs={4}>
+            <GameInfo />
+          </Grid>
+          <Grid item xs={12} sm={6} md>
             {searchInput}
           </Grid>
-          <Grid item xs={12} sm={6} md={4}>
+          <Grid item xs={12} sm={6} md={3}>
             {hintsRow}
           </Grid>
-          <Grid item xs={12} md={4}>
+          <Grid item xs={12}>
             {winPanel}
           </Grid>
         </StickyGrid>
         {content}
         <Footer />
       </Stack>
-    );
-  };
-  return (
-    <Box lineHeight="1.5" width="100%">
-      {makeRedactedMessages(synopsis)}
     </Box>
   );
 };

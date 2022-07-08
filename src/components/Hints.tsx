@@ -1,16 +1,21 @@
-import React, { Fragment } from "react";
-import { ShadowWord, ShadowWordsCloud } from "../models/Word";
+import React, { Fragment, useDeferredValue } from "react";
+import { useAppDispatch, useAppSelector } from "../hooks/useRedux";
+import { ShadowWordsCloud } from "../models/Word";
+import { updateLastWords } from "../redux/gameSlice";
 import { countHints, makeHintsCountText } from "../utils/text";
 
 interface HintsProps {
   text: ShadowWordsCloud;
-  currentShadowWords: Record<string, ShadowWord>;
-  lastWord: string;
   isScoreLoading: boolean;
 }
 
 const Hints = (props: HintsProps) => {
-  const { text, currentShadowWords, lastWord, isScoreLoading } = props;
+  const { text, isScoreLoading } = props;
+  const { currentShadowWords, lastWord } = useAppSelector(
+    (state) => state.game
+  );
+  const deferredLastWord = useDeferredValue(lastWord);
+  const dispatch = useAppDispatch();
   if (!lastWord || isScoreLoading) {
     return <Fragment />;
   }
@@ -19,6 +24,14 @@ const Hints = (props: HintsProps) => {
     currentShadowWords
   );
   const fullHintsRow = makeHintsCountText(newMatchedHints, newNearHints);
+  dispatch(
+    updateLastWords({
+      word: deferredLastWord,
+      matchCount: newMatchedHints.length,
+      nearCount: newNearHints.length,
+    })
+  );
+
   return (
     <p>
       <b>{`${lastWord}: ${fullHintsRow}`}</b>

@@ -1,6 +1,6 @@
 import { Box } from "@mui/material";
 import React from "react";
-import { ShadowWord, ShadowWordsCloud } from "../models/Word";
+import { ShadowWordInterface, ShadowWordsCloud } from "../models/Word";
 import { ShadowWordSpan } from "./ShadowWordSpan";
 
 const boxStyle = {
@@ -18,7 +18,7 @@ const boxStyle = {
 interface ObfuscatedTextProps {
   title: ShadowWordsCloud;
   synopsis: ShadowWordsCloud;
-  currentShadowWords: Record<string, ShadowWord>;
+  currentShadowWords: Record<string, ShadowWordInterface>;
 }
 
 const ObfuscatedText = (props: ObfuscatedTextProps) => {

@@ -1,4 +1,8 @@
-import { ShadowWord, ShadowWordsCloud } from "../models/Word";
+import {
+  ShadowWord,
+  ShadowWordInterface,
+  ShadowWordsCloud,
+} from "../models/Word";
 
 export const makeHintsCountText = (
   greenHints: string[],
@@ -22,14 +26,19 @@ const concatenateHintsCount = (hints: string[], limit: number = 10): string => {
 
 export const countHints = (
   wordClouds: ShadowWordsCloud,
-  currentShadowWords: Record<string, ShadowWord>
+  currentShadowWords: Record<string, ShadowWordInterface>
 ): { newMatchedHints: string[]; newNearHints: string[] } => {
   let newMatchedHints: string[] = [];
   let newNearHints: string[] = [];
   wordClouds.forEach((row) => {
     row.forEach((s) => {
-      const matchedWord = currentShadowWords[s.id.toString()];
-      if (matchedWord && matchedWord.isSimilar(s)) {
+      const comparingWord = new ShadowWord(s);
+      const matchedWordInterface = currentShadowWords[s.id.toString()];
+      if (!matchedWordInterface) {
+        return;
+      }
+      const matchedWord = new ShadowWord(matchedWordInterface);
+      if (matchedWord && matchedWord.isSimilar(comparingWord)) {
         if (matchedWord.similarity === 1) {
           newMatchedHints.push("🟩");
         } else {
@@ -72,5 +81,27 @@ export const summarizedGame = (wordClouds: ShadowWordsCloud): string => {
   for (let i = 0; i < matchedPerTen; i++) {
     summary += "🟩";
   }
+  console.log("summary", summary);
   return summary;
+};
+
+export const makeSummary = (
+  wordClouds: ShadowWordsCloud
+): { found: number; near: number; total: number } => {
+  let newMatchedHints = 0;
+  let newNearHints = 0;
+  let wordCount = 0;
+  wordClouds.forEach((row) => {
+    row.forEach((s) => {
+      if (s.id !== -1) {
+        wordCount++;
+        if (s.similarity === 1) {
+          newMatchedHints++;
+        } else if (s.similarity > 0) {
+          newNearHints++;
+        }
+      }
+    });
+  });
+  return { found: newMatchedHints, near: newNearHints, total: wordCount };
 };
