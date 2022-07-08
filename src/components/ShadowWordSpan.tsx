@@ -20,7 +20,7 @@ export const ShadowWordSpan = ({
   const isSimilar = word.similarity === 1;
   const isLastWordSimilar = isSimilar && isLastWord;
   const style: React.CSSProperties = {
-    fontFamily: "roboto, monaco, Lucida Console,consolas, monospace",
+    fontFamily: "monospace",
     fontWeight: "",
     borderRadius: "3px",
     backgroundColor: isLastWordSimilar
