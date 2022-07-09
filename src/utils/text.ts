@@ -81,7 +81,6 @@ export const summarizedGame = (wordClouds: ShadowWordsCloud): string => {
   for (let i = 0; i < matchedPerTen; i++) {
     summary += "🟩";
   }
-  console.log("summary", summary);
   return summary;
 };
 

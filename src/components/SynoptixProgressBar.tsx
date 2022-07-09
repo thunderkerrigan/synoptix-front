@@ -19,12 +19,15 @@ const SummaryProgress = styled(LinearProgress)(({ theme }) => ({
 
 const SynoptixProgressBar = () => {
   const { summary } = useAppSelector((state) => state.game);
-  const progress = (summary.found / summary.total) * 100;
-  const buffer = ((summary.found + summary.near) / summary.total) * 100;
+
+  const { found, near, total } = summary;
+  const progress = (found / total) * 100;
+  const buffer = ((found + near) / total) * 100;
+
   return (
     <Box sx={{ width: "100%" }}>
       <SummaryProgress variant="buffer" value={progress} valueBuffer={buffer} />
-      {summary.total > 0 && (
+      {total > 0 && (
         <Typography variant="body2" color="text.secondary">{`${Math.round(
           progress
         )}%`}</Typography>

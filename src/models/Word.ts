@@ -39,6 +39,7 @@ export type ShadowWordsCloud = ShadowWordInterface[][];
 
 export interface RedactedGame {
   gameID: number;
+  gameNumber: number;
   foundBy: number;
   lastMovie: string;
   redactedTitle: ShadowWordsCloud;
@@ -55,6 +56,7 @@ export interface LastWord {
 export interface WordsDictionary {
   userID: string;
   gameID: number;
+  gameNumber: number;
   foundScore: number;
   response: ShadowWordsCloud;
   lastMovie: string;

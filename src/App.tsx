@@ -87,14 +87,14 @@ const App = () => {
   }, [updateRequest]);
 
   useEffect(() => {
-    if (
-      update &&
-      update.gameID &&
-      update.gameID.toLocaleString() !== gameID.toLocaleString()
-    ) {
-      gameRequest();
+    if (update) {
+      if (update.gameID !== gameID) {
+        gameRequest();
+      } else {
+        dispatch(updateGame({ foundBy: update.foundBy }));
+      }
     }
-  }, [gameRequest, gameID, update]);
+  }, [gameRequest, gameID, update, dispatch]);
 
   useEffect(() => {
     if (game) {
@@ -110,6 +110,7 @@ const App = () => {
             foundScore: -1,
             summarizedGame: "",
             response: [],
+            gameNumber: game.gameNumber,
             lastMovie: game.lastMovie,
             gameID: game.gameID,
             currentShadowWords: {},
@@ -190,9 +191,7 @@ const App = () => {
   }, [allShadowWords]);
 
   useEffect(() => {
-    console.log("summarizedGame");
     if (foundScore === -1) {
-      console.log("summarizedGame SUCCESS");
       dispatch(
         updateGame({
           summarizedGame: summarizedGame(fullText),

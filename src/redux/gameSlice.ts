@@ -19,6 +19,7 @@ const loadCache = (): WordsDictionary => {
     return {
       userID: uuid(),
       gameID: -1,
+      gameNumber: -1,
       summarizedGame: "",
       summary: { found: 0, near: 0, total: 0 },
       lastMovie: "",
