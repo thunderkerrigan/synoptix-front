@@ -21,6 +21,8 @@ import SearchInput from "./components/SearchInput";
 import { useAppDispatch, useAppSelector } from "./hooks/useRedux";
 import { updateGame, updateShadowWord, winGame } from "./redux/gameSlice";
 import GameInfo from "./components/GameInfo";
+import SynoptixAppBar from "./components/SynoptixAppBar";
+import Rules from "./components/rules";
 
 const GET_UPDATE_STATUS_URL = process.env.REACT_APP_GET_UPDATE_STATUS_URL || "";
 const GET_CURRENT_GAME_URL = process.env.REACT_APP_GET_CURRENT_GAME_URL || "";
@@ -235,6 +237,7 @@ const App = () => {
 
   return (
     <Box lineHeight="1.5" width="100%">
+      <Rules />
       <Stack
         margin="auto"
         minHeight="100vh"
@@ -244,7 +247,7 @@ const App = () => {
         alignItems="center"
         spacing={2}
       >
-        <Typography variant="h2">! SYNOPTIX !</Typography>
+        <SynoptixAppBar />
         <Box sx={{ display: { xs: "block", sm: "none" } }}>
           <GameInfo />
         </Box>
