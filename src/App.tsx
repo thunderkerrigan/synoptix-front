@@ -118,6 +118,7 @@ const App = () => {
             currentShadowWords: {},
             allShadowWords: {},
             foundBy: game.foundBy,
+            lastWord: "",
             lastWords: [],
           })
         );
