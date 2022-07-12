@@ -61,7 +61,6 @@ const Rules = () => {
           marginBottom: "1rem",
         }}
         variant="contained"
-        autoFocus
         onClick={closeRules}
       >
         J'ai compris!
