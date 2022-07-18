@@ -1,4 +1,4 @@
-import axios, { AxiosBasicCredentials, AxiosResponse } from "axios";
+import axios, { AxiosBasicCredentials, AxiosError, AxiosResponse } from "axios";
 import { useCallback, useState } from "react";
 
 type GetError = string | undefined;
@@ -100,7 +100,10 @@ export const useGetRequest = <T>(
 
           setIsLoading(false);
         } catch (error) {
-          setError("get Error" + URL);
+          const _axiosError = error as AxiosError;
+          if (_axiosError.code === "ERR_BAD_REQUEST") {
+            setError("401");
+          }
           setIsLoading(false);
         }
       };

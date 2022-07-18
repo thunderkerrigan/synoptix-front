@@ -30,6 +30,7 @@ const Admin = () => {
   >(ADMIN_POST_MOVIE_URL);
 
   useEffect(() => {
+    console.log("error:", error);
     if (error && error === "401") {
       localStorage.removeItem("synoptix-admin-token");
       setToken(null);
