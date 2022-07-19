@@ -1,26 +1,30 @@
 import {
   AddBox as AddBoxIcon,
   Search as SearchIcon,
+  Warning as WarningIcon,
 } from "@mui/icons-material";
 import { LoadingButton } from "@mui/lab";
-import { Paper, Stack, TextField } from "@mui/material";
+import { Button, Paper, Stack, TextField } from "@mui/material";
 import { Box } from "@mui/system";
 import React, { useCallback, useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { useGetRequest } from "./hooks/useGetRequest";
-import { usePostRequest } from "./hooks/usePostRequest";
-import { WikipediaMovie } from "./models/Movie";
-import { MovieRequest } from "./models/Request";
+import { useGetRequest } from "../../hooks/useGetRequest";
+import { usePostRequest } from "../../hooks/usePostRequest";
+import { WikipediaMovie } from "../../models/Movie";
+import { MovieRequest } from "../../models/Request";
+import ResetDialog from "./ResetDialog";
 
 const ADMIN_GET_MOVIE_URL = process.env.REACT_APP_ADMIN_GET_MOVIE_URL || "";
 const ADMIN_POST_MOVIE_URL = process.env.REACT_APP_ADMIN_POST_MOVIE_URL || "";
 
 const Admin = () => {
+  const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
   const [token, setToken] = useState(
     localStorage.getItem("synoptix-admin-token")
   );
   const location = useLocation();
   const [searchField, setSearchField] = useState("");
+
   const [movie, fetchMovie, isLoading, error] =
     useGetRequest<WikipediaMovie>(ADMIN_GET_MOVIE_URL);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -52,12 +56,17 @@ const Admin = () => {
     }
   }, [addMovie, movie, token]);
 
+  const handleOpenDialog = () => setOpenConfirmDialog(true);
   if (!token) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   return (
     <Box width="75%" m="auto" p={2}>
+      <ResetDialog
+        isOpen={openConfirmDialog}
+        handleClose={() => setOpenConfirmDialog(false)}
+      />
       <Stack direction="row" spacing={2}>
         <TextField
           id="movie"
@@ -84,6 +93,15 @@ const Admin = () => {
             Ajouter
           </LoadingButton>
         )}
+        <Box flexGrow={1} />
+        <Button
+          startIcon={<WarningIcon />}
+          variant="contained"
+          color="warning"
+          onClick={handleOpenDialog}
+        >
+          Reset Game Date
+        </Button>
       </Stack>
       <Paper>
         {movie && (

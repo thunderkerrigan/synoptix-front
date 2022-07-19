@@ -10,7 +10,7 @@ import "@fontsource/roboto/500.css";
 import "@fontsource/roboto/700.css";
 import { Box } from "@mui/system";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
-import Admin from "./Admin";
+import Admin from "./features/admin/Admin";
 import Login from "./Login";
 import { Provider } from "react-redux";
 import { store } from "./redux/store";
