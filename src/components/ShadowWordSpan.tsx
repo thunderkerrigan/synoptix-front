@@ -20,8 +20,8 @@ export const ShadowWordSpan = ({
   const isSimilar = word.similarity === 1;
   const isLastWordSimilar = isSimilar && isLastWord;
   const style: React.CSSProperties = {
-    fontFamily: "monospace",
-    fontWeight: "",
+    fontFamily: '"DejaVu Mono", monospace',
+    fontWeight: "700",
     borderRadius: "3px",
     backgroundColor: isLastWordSimilar
       ? lightGreen["A400"]
@@ -32,7 +32,7 @@ export const ShadowWordSpan = ({
       ? "black"
       : isLastWord
       ? tint(amber, word.similarity)
-      : tint(grey, 1.5 - word.similarity),
+      : tint(grey, 1.5 - Math.max(word.similarity, 0.7)),
     // width: `${word.shadowWord.length * 10}px`,
     whiteSpace: "pre",
     padding: isSimilar && !isLastWordSimilar ? "0" : "2px 5px",

@@ -8,6 +8,8 @@ import "@fontsource/roboto/300.css";
 import "@fontsource/roboto/400.css";
 import "@fontsource/roboto/500.css";
 import "@fontsource/roboto/700.css";
+import "@fontsource/dejavu-mono/400.css";
+import "@fontsource/dejavu-mono/700.css";
 import { Box } from "@mui/system";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import Admin from "./features/admin/Admin";
